@@ -1,0 +1,234 @@
+import React, { useState } from 'react';
+import { useAdminAuth } from '../context/AdminAuthContext';
+import {
+  Store,
+  ShieldCheck,
+  Zap,
+  Lock,
+  Mail,
+  ArrowRight,
+  Database,
+  RefreshCw,
+  ExternalLink,
+  UserCheck,
+} from 'lucide-react';
+
+export const AdminLoginPage: React.FC = () => {
+  const { login, resetDemoData, isSeeding } = useAdminAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [seedSuccessMsg, setSeedSuccessMsg] = useState<string | null>(null);
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    if (password && password !== 'admin123' && password !== 'admin' && password !== '123456') {
+      // Allow demo bypass
+    }
+
+    let role: any = 'super_admin';
+    let name = 'Super Admin';
+
+    if (email.includes('ops')) {
+      role = 'order_manager';
+      name = 'Operations Manager';
+    } else if (email.includes('inv')) {
+      role = 'inventory_manager';
+      name = 'Inventory Supervisor';
+    }
+
+    await login(email, role, name);
+  };
+
+  const handleQuickLogin = async (demoEmail: string, role: any, displayName: string) => {
+    setEmail(demoEmail);
+    setPassword('admin123');
+    await login(demoEmail, role, displayName);
+  };
+
+  const handleSeedDemo = async () => {
+    setSeedSuccessMsg(null);
+    const success = await resetDemoData();
+    if (success) {
+      setSeedSuccessMsg('24+ Products, 10 Categories, 12 Orders & Wholesale Slabs dumped successfully!');
+      setTimeout(() => setSeedSuccessMsg(null), 5000);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans text-slate-100">
+      {/* Background Gradients */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10 space-y-6">
+        
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-xl shadow-emerald-600/30">
+            <Store className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-black text-white tracking-tight">
+            DailyFresh <span className="text-emerald-400">Admin Portal</span>
+          </h1>
+          <p className="text-xs text-slate-400">
+            Wholesale Pricing Engine • Inventory Logistics • Order Fulfillment
+          </p>
+        </div>
+
+        {seedSuccessMsg && (
+          <div className="rounded-2xl border border-emerald-800 bg-emerald-950/80 p-4 text-xs font-bold text-emerald-300 flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+            <span>{seedSuccessMsg}</span>
+          </div>
+        )}
+
+        {/* 1-Click Quick Demo Login Shortcuts */}
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-5 shadow-2xl space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5 fill-amber-400" />
+              1-Click Demo Login Roles
+            </span>
+            <span className="text-[10px] text-slate-400">Select any role below</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2">
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('admin@dailyfreshmart.com', 'super_admin', 'Super Admin')}
+              className="group flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/80 p-3 text-left hover:border-emerald-500 hover:bg-emerald-950/20 transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-900/60 text-emerald-400 border border-emerald-700/60">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-white text-xs block group-hover:text-emerald-300">
+                    Super Admin
+                  </span>
+                  <span className="text-[10px] text-slate-400">Full Catalog, Wholesale & Feature Flags</span>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('ops@dailyfreshmart.com', 'order_manager', 'Operations Manager')}
+              className="group flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/80 p-3 text-left hover:border-blue-500 hover:bg-blue-950/20 transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-900/60 text-blue-400 border border-blue-700/60">
+                  <UserCheck className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-white text-xs block group-hover:text-blue-300">
+                    Operations Manager
+                  </span>
+                  <span className="text-[10px] text-slate-400">Order Progression & Customer WhatsApp</span>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('inventory@dailyfreshmart.com', 'inventory_manager', 'Inventory Supervisor')}
+              className="group flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/80 p-3 text-left hover:border-amber-500 hover:bg-amber-950/20 transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-900/60 text-amber-400 border border-amber-700/60">
+                  <Zap className="h-4 w-4 fill-amber-400" />
+                </div>
+                <div>
+                  <span className="font-bold text-white text-xs block group-hover:text-amber-300">
+                    Inventory Supervisor
+                  </span>
+                  <span className="text-[10px] text-slate-400">Direct Stock Counts & Restock Audit</span>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-1 transition" />
+            </button>
+          </div>
+        </div>
+
+        {/* Credentials Form */}
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Or Sign in with Email / PIN
+          </h3>
+
+          {error && (
+            <div className="rounded-xl border border-rose-800 bg-rose-950 p-3 text-xs text-rose-300 font-medium">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleFormSubmit} className="space-y-4 text-xs">
+            <div>
+              <label className="block text-slate-300 font-bold mb-1">Admin Email</label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  placeholder="admin@dailyfreshmart.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 py-2.5 pl-9 pr-3 text-white outline-none focus:border-emerald-500 font-medium"
+                />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-bold mb-1">Password or Master PIN</label>
+              <div className="relative">
+                <input
+                  type="password"
+                  placeholder="•••••••• (default: admin123)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 py-2.5 pl-9 pr-3 text-white outline-none focus:border-emerald-500"
+                />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 py-3 text-xs font-black text-white shadow-lg shadow-emerald-600/30 hover:from-emerald-500 hover:to-emerald-600 transition"
+            >
+              Sign In to Operations Console
+            </button>
+          </form>
+        </div>
+
+        {/* Utilities: Dump Demo Data & Open Store */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <button
+            type="button"
+            onClick={handleSeedDemo}
+            disabled={isSeeding}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/90 px-3.5 py-2 text-slate-300 hover:text-emerald-400 hover:border-emerald-800/80 transition"
+          >
+            <Database className={`h-3.5 w-3.5 ${isSeeding ? 'animate-spin' : 'text-emerald-400'}`} />
+            <span>{isSeeding ? 'Dumping Demo Data...' : 'Dump / Reset Demo Data'}</span>
+          </button>
+
+          <a
+            href="http://localhost:5173"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition"
+          >
+            <span>Open Storefront (5173)</span>
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+};

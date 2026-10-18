@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "dailyfresh-wholesale-mart"
+  },
+  "targets": {
+    "dailyfresh-wholesale-mart": {
+      "hosting": {
+        "web": [
+          "dailyfresh-wholesale-mart"
+        ],
+        "admin": [
+          "dailyfresh-wholesale-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,27 @@
+{
+  "name": "ecommerce-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade Groceries, Snacks & General Store E-Commerce Platform",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "backend"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:admin": "npm run dev --workspace=apps/admin",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "keywords": [
+    "ecommerce",
+    "wholesale-pricing",
+    "groceries",
+    "phonepe",
+    "firebase"
+  ],
+  "author": "",
+  "license": "ISC"
+}
