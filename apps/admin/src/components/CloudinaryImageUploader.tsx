@@ -33,8 +33,8 @@ export const CloudinaryImageUploader: React.FC<CloudinaryImageUploaderProps> = (
     }
   })();
 
-  const defaultCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || savedConfig?.cloudName || '';
-  const defaultUploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || savedConfig?.uploadPreset || '';
+  const defaultCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || savedConfig?.cloudName || 'colasfg8';
+  const defaultUploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || savedConfig?.uploadPreset || 'dailyfresh_preset';
 
   const [cloudName, setCloudName] = useState(defaultCloudName);
   const [uploadPreset, setUploadPreset] = useState(defaultUploadPreset);
