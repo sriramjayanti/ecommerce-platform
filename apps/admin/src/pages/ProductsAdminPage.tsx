@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, ProductVariant, PriceTier, Category, validatePriceTiers } from '@ecommerce/shared';
+import { CloudinaryImageUploader } from '../components/CloudinaryImageUploader';
 import {
   Package,
   Plus,
@@ -513,30 +514,13 @@ export const ProductsAdminPage: React.FC = () => {
                 )}
 
                 <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-300 mb-1">Image URL</label>
-                  <input
-                    type="text"
+                  <CloudinaryImageUploader
                     value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-white outline-none focus:border-emerald-500 mb-2 font-mono text-[11px]"
+                    onChange={setImageUrl}
+                    folder="dailyfresh/products"
+                    label="Product Image (Cloudinary Drag & Drop or Presets)"
+                    presets={PRESET_IMAGES.slice(0, 8)}
                   />
-                  {/* Preset Image Suggestions */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                      <ImageIcon className="h-3 w-3" /> Presets:
-                    </span>
-                    {PRESET_IMAGES.slice(0, 7).map((preset) => (
-                      <button
-                        key={preset.name}
-                        type="button"
-                        onClick={() => setImageUrl(preset.url)}
-                        className="rounded-md bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] text-slate-300 hover:text-emerald-400 hover:border-emerald-800"
-                      >
-                        {preset.name}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 <div className="sm:col-span-2">

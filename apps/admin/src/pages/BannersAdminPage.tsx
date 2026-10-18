@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Banner } from '@ecommerce/shared';
+import { CloudinaryImageUploader } from '../components/CloudinaryImageUploader';
 import { Image, Plus, Trash2, Edit2, CheckCircle2, X, Power, ExternalLink, Sparkles } from 'lucide-react';
 
 const BANNER_PRESETS = [
@@ -254,33 +255,13 @@ export const BannersAdminPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-300 mb-1">Image URL *</label>
-                <input
-                  type="text"
-                  required
+                <CloudinaryImageUploader
                   value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-white outline-none focus:border-emerald-500 font-mono text-[11px] mb-2"
+                  onChange={setImageUrl}
+                  folder="dailyfresh/banners"
+                  label="Promo Banner Image (Cloudinary Drag & Drop or Presets)"
+                  presets={BANNER_PRESETS.map((p) => ({ name: p.title.split(' ')[0], url: p.image }))}
                 />
-                {/* Presets */}
-                <div className="flex flex-wrap gap-1">
-                  {BANNER_PRESETS.map((p) => (
-                    <button
-                      key={p.title}
-                      type="button"
-                      onClick={() => {
-                        setImageUrl(p.image);
-                        if (!title) setTitle(p.title);
-                        if (!subtitle) setSubtitle(p.subtitle);
-                        if (!linkUrl) setLinkUrl(p.link);
-                      }}
-                      className="rounded bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] text-slate-300 hover:text-emerald-400"
-                    >
-                      {p.title.split(' ')[0]} Preset
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
