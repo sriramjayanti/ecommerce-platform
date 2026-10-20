@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { Order, Product } from '@ecommerce/shared';
+import { Order, Product, safeApiFetch } from '@ecommerce/shared';
 import { ProductCard } from '../components/ProductCard';
+import { BackButton } from '../components/BackButton';
 import {
   User,
   ShoppingBag,
@@ -27,31 +28,35 @@ export const AccountPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/orders')
-      .then((r) => r.json())
+    safeApiFetch<Order[]>('/api/orders')
       .then((d) => {
-        if (d.success) {
-          // If user exists, filter or show all recent for demo
+        if (d.success && d.data) {
           setUserOrders(d.data);
         }
-      });
+      })
+      .catch(() => {});
 
-    fetch('/api/products')
-      .then((r) => r.json())
+    safeApiFetch<Product[]>('/api/products')
       .then((d) => {
-        if (d.success) {
+        if (d.success && d.data) {
           const list = d.data.filter((p: Product) => wishlistIds.includes(p.id));
           setWishlistProducts(list);
         }
-      });
+      })
+      .catch(() => {});
   }, [wishlistIds]);
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="min-h-screen bg-slate-50 py-8">
+      <div className="max-w-6xl mx-auto px-4 space-y-6">
         
+        {/* Back Navigation */}
+        <div>
+          <BackButton fallback="/" label="Back to Marketplace" />
+        </div>
+
         {/* Profile Banner */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800 text-xl font-black shadow-xs">
               {user?.displayName ? user.displayName[0].toUpperCase() : 'U'}
@@ -135,16 +140,21 @@ export const AccountPage: React.FC = () => {
                   className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="space-y-1 text-xs">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-extrabold text-sm text-slate-900">#{order.orderNumber}</span>
                       <span
                         className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
                           order.orderStatus === 'Delivered'
                             ? 'bg-emerald-100 text-emerald-800'
+                            : order.orderStatus === 'Cancelled'
+                            ? 'bg-rose-100 text-rose-800'
                             : 'bg-amber-100 text-amber-900'
                         }`}
                       >
                         {order.orderStatus}
+                      </span>
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                        {order.fulfillmentMethod === 'takeaway' ? '🏪 Takeaway / Pickup' : '🚚 Home Delivery'}
                       </span>
                     </div>
                     <p className="text-slate-500">
@@ -153,7 +163,7 @@ export const AccountPage: React.FC = () => {
                     <p className="font-black text-slate-900 text-sm">
                       Total: ₹{order.finalTotal}{' '}
                       <span className="text-[11px] font-normal text-slate-500">
-                        ({order.paymentMethod.toUpperCase()} • {order.paymentStatus})
+                        ({order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod === 'upi' ? 'UPI' : order.paymentMethod === 'credit_card' ? 'Credit Card' : order.paymentMethod === 'debit_card' ? 'Debit Card' : 'Online Payment'} • {order.paymentStatus})
                       </span>
                     </p>
                   </div>

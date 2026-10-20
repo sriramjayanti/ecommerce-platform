@@ -28,23 +28,23 @@ export const AdminHeader: React.FC = () => {
   const getRoleBadge = (role?: string) => {
     switch (role) {
       case 'super_admin':
-        return 'bg-emerald-950 text-emerald-400 border-emerald-800';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
       case 'order_manager':
-        return 'bg-blue-950 text-blue-400 border-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-300';
       case 'inventory_manager':
-        return 'bg-amber-950 text-amber-400 border-amber-800';
+        return 'bg-amber-100 text-amber-800 border-amber-300';
       default:
-        return 'bg-slate-800 text-slate-300 border-slate-700';
+        return 'bg-slate-100 text-slate-700 border-slate-300';
     }
   };
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800 bg-slate-950/90 px-6 py-3.5 backdrop-blur-md">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/95 px-6 py-3.5 backdrop-blur-md shadow-2xs">
         {/* Left: Quick System Status */}
         <div className="flex items-center gap-3">
           <div className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/80 animate-pulse" />
-          <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+          <span className="text-xs font-black uppercase tracking-wider text-slate-500">
             Operations & Wholesale Platform
           </span>
         </div>
@@ -57,10 +57,10 @@ export const AdminHeader: React.FC = () => {
             type="button"
             onClick={handleSeed}
             disabled={isSeeding}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-800/80 bg-emerald-950/60 px-3 py-1.5 text-xs font-bold text-emerald-300 hover:bg-emerald-900/80 transition"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-xs"
             title="Reset Catalog, Orders, Slabs and Reviews with rich demo data"
           >
-            <Database className={`h-3.5 w-3.5 ${isSeeding ? 'animate-spin' : 'text-emerald-400'}`} />
+            <Database className={`h-3.5 w-3.5 ${isSeeding ? 'animate-spin' : 'text-emerald-600'}`} />
             <span>{isSeeding ? 'Dumping...' : 'Dump Demo Data'}</span>
           </button>
 
@@ -69,18 +69,18 @@ export const AdminHeader: React.FC = () => {
             href="http://localhost:5173"
             target="_blank"
             rel="noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition shadow-xs"
           >
-            <Store className="h-3.5 w-3.5 text-emerald-400" />
+            <Store className="h-3.5 w-3.5 text-emerald-600" />
             <span>Customer Store (5173)</span>
-            <ExternalLink className="h-3 w-3 text-slate-500" />
+            <ExternalLink className="h-3 w-3 text-slate-400" />
           </a>
 
           {/* Logged in User Profile & Role Badge */}
           {adminUser && (
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
               <div className="text-right hidden md:block">
-                <span className="text-xs font-bold text-white block leading-tight">
+                <span className="text-xs font-bold text-slate-900 block leading-tight">
                   {adminUser.displayName || adminUser.email}
                 </span>
                 <span
@@ -96,7 +96,7 @@ export const AdminHeader: React.FC = () => {
               <button
                 type="button"
                 onClick={logout}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 hover:border-rose-800/50 transition"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition"
                 title="Sign out of admin"
               >
                 <LogOut className="h-4 w-4" />
@@ -108,8 +108,8 @@ export const AdminHeader: React.FC = () => {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl border border-emerald-700 bg-emerald-950 p-4 shadow-2xl text-xs font-bold text-emerald-300 flex items-center gap-2 animate-in slide-in-from-bottom-5">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 shadow-xl text-xs font-bold text-emerald-900 flex items-center gap-2 animate-in slide-in-from-bottom-5">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}

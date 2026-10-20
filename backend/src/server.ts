@@ -127,6 +127,7 @@ app.get('/api/settings', (req, res) => {
 
 app.put('/api/settings', (req, res) => {
   db.settings = { ...db.settings, ...req.body };
+  db.saveToDisk();
   res.json({ success: true, data: db.settings });
 });
 
@@ -141,35 +142,90 @@ app.get('/api/admin/categories', (req, res) => {
 });
 
 app.post('/api/categories', (req, res) => {
-  const newCat = {
-    id: `cat-${Date.now()}`,
-    slug: req.body.slug || req.body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    sortOrder: req.body.sortOrder || db.categories.length + 1,
-    isVisible: true,
-    subcategories: req.body.subcategories || [],
-    ...req.body,
-  };
-  db.categories.push(newCat);
-  res.json({ success: true, data: newCat });
+  try {
+    const { name, slug, image, sortOrder, subcategories } = req.body;
+    const trimmedName = name?.trim();
+    if (!trimmedName) {
+      return res.status(400).json({ success: false, error: 'Category name is required' });
+    }
+
+    // Prevent duplicate category names (case-insensitive)
+    const existing = db.categories.find(
+      (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        error: `A category named "${trimmedName}" already exists.`,
+      });
+    }
+
+    const generatedSlug = slug?.trim() || trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const newCat = {
+      id: `cat-${Date.now()}`,
+      name: trimmedName,
+      slug: generatedSlug,
+      image: image || '',
+      sortOrder: Number(sortOrder) || db.categories.length + 1,
+      isVisible: true,
+      subcategories: Array.isArray(subcategories) ? subcategories : [],
+    };
+
+    db.categories.push(newCat);
+    db.saveToDisk();
+    res.json({ success: true, data: newCat });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to create category' });
+  }
 });
 
 app.put('/api/categories/:id', (req, res) => {
-  const idx = db.categories.findIndex((c) => c.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ success: false, error: 'Category not found' });
-  db.categories[idx] = { ...db.categories[idx], ...req.body };
-  res.json({ success: true, data: db.categories[idx] });
+  try {
+    const idx = db.categories.findIndex((c) => c.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: 'Category not found' });
+
+    if (req.body.name) {
+      const trimmedName = req.body.name.trim();
+      if (!trimmedName) {
+        return res.status(400).json({ success: false, error: 'Category name cannot be empty' });
+      }
+      const duplicate = db.categories.find(
+        (c) => c.id !== req.params.id && c.name.toLowerCase() === trimmedName.toLowerCase()
+      );
+      if (duplicate) {
+        return res.status(400).json({
+          success: false,
+          error: `A category named "${trimmedName}" already exists.`,
+        });
+      }
+      req.body.name = trimmedName;
+    }
+
+    db.categories[idx] = { ...db.categories[idx], ...req.body };
+    db.saveToDisk();
+    res.json({ success: true, data: db.categories[idx] });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to update category' });
+  }
 });
 
 app.delete('/api/categories/:id', (req, res) => {
-  const hasProducts = db.products.some((p) => p.categoryId === req.params.id && p.status === 'active');
-  if (hasProducts) {
-    return res.status(400).json({
-      success: false,
-      error: 'Cannot delete category that still has active products assigned. Reassign products first.',
-    });
+  try {
+    const hasProducts = db.products.some(
+      (p) => p.categoryId === req.params.id && p.status !== 'archived'
+    );
+    if (hasProducts) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete category that still has active products assigned. Reassign products first.',
+      });
+    }
+    db.categories = db.categories.filter((c) => c.id !== req.params.id);
+    db.saveToDisk();
+    res.json({ success: true, message: 'Category removed' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to delete category' });
   }
-  db.categories = db.categories.filter((c) => c.id !== req.params.id);
-  res.json({ success: true, message: 'Category removed' });
 });
 
 // ----------------- PRODUCTS & CATALOG -----------------
@@ -230,8 +286,49 @@ app.post('/api/products', (req, res) => {
   try {
     const productData = req.body;
 
-    // Validate tier pricing for each variant
-    for (const variant of productData.variants || []) {
+    const trimmedTitle = productData.title?.trim();
+    if (!trimmedTitle) {
+      return res.status(400).json({ success: false, error: 'Product title is required' });
+    }
+
+    if (!productData.categoryId) {
+      return res.status(400).json({ success: false, error: 'Category selection is required' });
+    }
+
+    const categoryExists = db.categories.some((c) => c.id === productData.categoryId);
+    if (!categoryExists) {
+      return res.status(400).json({ success: false, error: 'Selected category does not exist' });
+    }
+
+    const variants = Array.isArray(productData.variants) && productData.variants.length > 0
+      ? productData.variants
+      : [
+          {
+            id: `var-${Date.now()}`,
+            name: 'Standard Pack',
+            sku: `SKU-${Date.now().toString().slice(-4)}`,
+            weightOrSize: '1 unit',
+            mrp: Number(productData.mrp) || Number(productData.price) || 100,
+            basePrice: Number(productData.price) || 100,
+            stock: Number(productData.stock) || 50,
+            lowStockThreshold: 5,
+            pricingTiers: [],
+            isDefault: true,
+          },
+        ];
+
+    // Validate tier pricing & values for each variant
+    for (const variant of variants) {
+      if (!variant.name || !variant.name.trim()) {
+        return res.status(400).json({ success: false, error: 'Variant name is required' });
+      }
+      if (Number(variant.basePrice) <= 0) {
+        return res.status(400).json({ success: false, error: `Variant "${variant.name}" must have price > 0` });
+      }
+      if (Number(variant.stock) < 0) {
+        return res.status(400).json({ success: false, error: `Variant "${variant.name}" cannot have negative stock` });
+      }
+
       const val = validatePriceTiers(variant.pricingTiers || []);
       if (!val.isValid) {
         return res.status(400).json({ success: false, error: val.error });
@@ -240,41 +337,74 @@ app.post('/api/products', (req, res) => {
 
     const newProduct = {
       id: `prod-${Date.now()}`,
-      slug: productData.slug || productData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      title: trimmedTitle,
+      slug: productData.slug || trimmedTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       rating: 5.0,
       reviewCount: 0,
-      status: 'active',
+      status: productData.status || 'active',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       ...productData,
+      variants,
     };
 
     db.products.unshift(newProduct);
+    db.saveToDisk();
     res.json({ success: true, data: newProduct });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: err.message || 'Failed to create product' });
   }
 });
 
 app.put('/api/products/:id', (req, res) => {
-  const idx = db.products.findIndex((p) => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ success: false, error: 'Product not found' });
+  try {
+    const idx = db.products.findIndex((p) => p.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: 'Product not found' });
 
-  // Validate tier pricing on update
-  for (const variant of req.body.variants || []) {
-    const val = validatePriceTiers(variant.pricingTiers || []);
-    if (!val.isValid) {
-      return res.status(400).json({ success: false, error: val.error });
+    // Validate tier pricing on update
+    for (const variant of req.body.variants || []) {
+      if (Number(variant.basePrice) <= 0) {
+        return res.status(400).json({ success: false, error: `Variant "${variant.name}" must have price > 0` });
+      }
+      if (Number(variant.stock) < 0) {
+        return res.status(400).json({ success: false, error: `Variant "${variant.name}" cannot have negative stock` });
+      }
+      const val = validatePriceTiers(variant.pricingTiers || []);
+      if (!val.isValid) {
+        return res.status(400).json({ success: false, error: val.error });
+      }
     }
+
+    db.products[idx] = {
+      ...db.products[idx],
+      ...req.body,
+      updatedAt: new Date().toISOString(),
+    };
+
+    db.saveToDisk();
+    res.json({ success: true, data: db.products[idx] });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Failed to update product' });
   }
+});
 
-  db.products[idx] = {
-    ...db.products[idx],
-    ...req.body,
-    updatedAt: new Date().toISOString(),
-  };
+app.patch('/api/products/:id/status', (req, res) => {
+  try {
+    const product = db.products.find((p) => p.id === req.params.id);
+    if (!product) return res.status(404).json({ success: false, error: 'Product not found' });
 
-  res.json({ success: true, data: db.products[idx] });
+    const { status } = req.body;
+    if (!status || !['active', 'draft', 'archived'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status. Must be active, draft, or archived.' });
+    }
+
+    product.status = status;
+    product.updatedAt = new Date().toISOString();
+    db.saveToDisk();
+    res.json({ success: true, data: product });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.delete('/api/products/:id', (req, res) => {
@@ -284,6 +414,7 @@ app.delete('/api/products/:id', (req, res) => {
   // Safe deletion: archive product
   product.status = 'archived';
   product.updatedAt = new Date().toISOString();
+  db.saveToDisk();
   res.json({ success: true, message: 'Product archived successfully', data: product });
 });
 
@@ -323,10 +454,10 @@ app.get('/api/orders/:id', (req, res) => {
   res.json({ success: true, data: order, whatsappSupportUrl: OrderService.getWhatsAppSupportUrl(order) });
 });
 
-app.patch('/api/orders/:id/status', (req, res) => {
+app.patch('/api/orders/:id/status', async (req, res) => {
   try {
     const { status, note } = req.body;
-    const updated = OrderService.updateFulfillmentStatus(req.params.id, status, note, 'admin');
+    const updated = await OrderService.updateFulfillmentStatus(req.params.id, status, note, 'admin');
     res.json({ success: true, data: updated });
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
@@ -430,6 +561,7 @@ app.post('/api/banners', (req, res) => {
     ...req.body,
   };
   db.banners.push(banner);
+  db.saveToDisk();
   res.json({ success: true, data: banner });
 });
 
@@ -437,11 +569,13 @@ app.put('/api/banners/:id', (req, res) => {
   const idx = db.banners.findIndex((b) => b.id === req.params.id);
   if (idx === -1) return res.status(404).json({ success: false, error: 'Banner not found' });
   db.banners[idx] = { ...db.banners[idx], ...req.body };
+  db.saveToDisk();
   res.json({ success: true, data: db.banners[idx] });
 });
 
 app.delete('/api/banners/:id', (req, res) => {
   db.banners = db.banners.filter((b) => b.id !== req.params.id);
+  db.saveToDisk();
   res.json({ success: true, message: 'Banner removed successfully' });
 });
 
@@ -462,6 +596,7 @@ app.post('/api/reviews', (req, res) => {
     ...req.body,
   };
   db.reviews.unshift(review);
+  db.saveToDisk();
   res.json({ success: true, data: review });
 });
 
@@ -469,11 +604,13 @@ app.patch('/api/reviews/:id/moderate', (req, res) => {
   const rev = db.reviews.find((r) => r.id === req.params.id);
   if (!rev) return res.status(404).json({ success: false, error: 'Review not found' });
   rev.status = req.body.status;
+  db.saveToDisk();
   res.json({ success: true, data: rev });
 });
 
 app.delete('/api/reviews/:id', (req, res) => {
   db.reviews = db.reviews.filter((r) => r.id !== req.params.id);
+  db.saveToDisk();
   res.json({ success: true, message: 'Review deleted successfully' });
 });
 
@@ -513,6 +650,29 @@ app.get('/api/admin/metrics', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+// ----------------- 404 & JSON ERROR HANDLING -----------------
+// Catch-all for undefined /api routes: ALWAYS return JSON, never HTML
+app.all('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `API route not found: ${req.method} ${req.originalUrl}`,
+  });
 });
+
+// Express global error handler: ALWAYS return JSON, never HTML
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled Server Error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal Server Error',
+  });
+});
+
+const isMain = process.argv[1] && (process.argv[1].endsWith('server.ts') || process.argv[1].endsWith('server.js'));
+if (isMain) {
+  app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`Backend server running on http://localhost:${PORT}`);
+  });
+}
+
+export { app };

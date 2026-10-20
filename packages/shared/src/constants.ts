@@ -35,3 +35,13 @@ export const ORDER_STATUS_STEPS = [
   'Out for Delivery',
   'Delivered',
 ] as const;
+
+export const ALL_ORDER_STATUSES = [
+  'Placed',
+  'Confirmed',
+  'Processing',
+  'Packed',
+  'Out for Delivery',
+  'Delivered',
+  'Cancelled',
+] as const;

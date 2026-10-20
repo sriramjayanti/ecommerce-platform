@@ -8,6 +8,7 @@ import {
   calculateCartTotals,
   DEFAULT_STORE_SETTINGS,
   StoreSettings,
+  safeApiFetch,
 } from '@ecommerce/shared';
 
 interface CartContextType {
@@ -42,8 +43,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then((res) => res.json())
+    safeApiFetch<StoreSettings>('/api/settings')
       .then((data) => {
         if (data.success && data.data) {
           setSettings(data.data);
@@ -65,6 +65,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [items, settings]);
 
   const addItem = (product: Product, variant: ProductVariant, quantity: number = 1) => {
+    if (!variant || variant.stock <= 0) {
+      return;
+    }
+
     setItems((prev) => {
       const existingIdx = prev.findIndex(
         (i) => i.productId === product.id && i.variantId === variant.id

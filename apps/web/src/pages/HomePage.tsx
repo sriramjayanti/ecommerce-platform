@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Product, Category, Banner, INITIAL_PRODUCTS, INITIAL_CATEGORIES, INITIAL_BANNERS } from '@ecommerce/shared';
+import { Product, Category, Banner, INITIAL_PRODUCTS, INITIAL_CATEGORIES, INITIAL_BANNERS, safeApiFetch } from '@ecommerce/shared';
 import { CategoryPillsBar } from '../components/CategoryPillsBar';
 import { HeroDealsCarousel } from '../components/HeroDealsCarousel';
 import { BankOffersBar } from '../components/BankOffersBar';
@@ -38,9 +38,9 @@ export const HomePage: React.FC = () => {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/products').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-      fetch('/api/categories').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-      fetch('/api/banners').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
+      safeApiFetch<Product[]>('/api/products').catch(() => ({ success: false, data: [] })),
+      safeApiFetch<Category[]>('/api/categories').catch(() => ({ success: false, data: [] })),
+      safeApiFetch<Banner[]>('/api/banners').catch(() => ({ success: false, data: [] })),
     ])
       .then(([prodRes, catRes, banRes]) => {
         if (prodRes.success && prodRes.data?.length) setProducts(prodRes.data);

@@ -24,6 +24,7 @@ import {
   ArrowRight,
   HelpCircle,
 } from 'lucide-react';
+import { safeApiFetch } from '@ecommerce/shared';
 
 export const MegaHeader: React.FC = () => {
   const { totals, wishlistIds, setDrawerOpen, settings } = useCart();
@@ -44,10 +45,9 @@ export const MegaHeader: React.FC = () => {
   const accountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/categories')
-      .then((r) => r.json())
+    safeApiFetch<any[]>('/api/categories')
       .then((d) => {
-        if (d.success) setCategories(d.data);
+        if (d.success && d.data) setCategories(d.data);
       })
       .catch(() => {});
   }, []);

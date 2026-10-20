@@ -25,11 +25,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const mrp = defaultVariant?.mrp || price;
   const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const hasWholesaleTiers = product.isWholesaleEnabled && (defaultVariant?.pricingTiers?.length || 0) > 1;
+  const isOutOfStock = !defaultVariant || defaultVariant.stock <= 0;
+  const isLowStock = !isOutOfStock && defaultVariant.stock <= (defaultVariant.lowStockThreshold || 5);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (defaultVariant) {
+    if (defaultVariant && !isOutOfStock) {
       addItem(product, defaultVariant, 1);
     }
   };
@@ -47,7 +49,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <div className="relative mb-3">
         {/* Top Badges */}
         <div className="absolute top-0 left-0 z-10 flex flex-col gap-1">
-          {product.badge ? (
+          {isOutOfStock ? (
+            <span className="rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white uppercase tracking-wider shadow-xs">
+              Out of Stock
+            </span>
+          ) : product.badge ? (
             <span className="rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white uppercase tracking-wider shadow-xs">
               {product.badge}
             </span>
@@ -57,7 +63,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </span>
           ) : null}
 
-          {hasWholesaleTiers && (
+          {!isOutOfStock && hasWholesaleTiers && (
             <span className="rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-slate-950 flex items-center gap-0.5 shadow-xs">
               <Zap className="h-2.5 w-2.5 fill-slate-950" />
               Wholesale Slabs
@@ -142,19 +148,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             )}
           </div>
 
-          {/* Prime Fast Delivery Tag */}
-          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-            <Truck className="h-3 w-3 text-emerald-600" />
-            <span>{product.deliveryTag || 'FREE Delivery by Tomorrow'}</span>
-          </p>
+          {/* Stock or Prime Fast Delivery Tag */}
+          {isOutOfStock ? (
+            <p className="text-[10px] sm:text-[11px] font-bold text-rose-600">
+              Currently Unavailable
+            </p>
+          ) : isLowStock ? (
+            <p className="text-[10px] sm:text-[11px] font-bold text-amber-700">
+              Only {defaultVariant?.stock} left in stock!
+            </p>
+          ) : (
+            <p className="text-[10px] sm:text-[11px] font-semibold text-slate-600 flex items-center gap-1">
+              <Truck className="h-3 w-3 text-emerald-600" />
+              <span>{product.deliveryTag || 'FREE Delivery by Tomorrow'}</span>
+            </p>
+          )}
 
           {/* Add to Cart CTA Button */}
           <button
             onClick={handleAddToCart}
-            className="w-full mt-2 flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 active:scale-95 py-2 text-xs font-black text-slate-950 shadow-xs transition"
+            disabled={isOutOfStock}
+            className={`w-full mt-2 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black transition ${
+              isOutOfStock
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-amber-400 hover:bg-amber-500 active:scale-95 text-slate-950 shadow-xs'
+            }`}
           >
             <ShoppingBag className="h-3.5 w-3.5" />
-            <span>Add to Cart</span>
+            <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
           </button>
         </div>
       </div>

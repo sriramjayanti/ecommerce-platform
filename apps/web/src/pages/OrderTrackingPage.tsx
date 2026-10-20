@@ -18,6 +18,8 @@ import {
   RotateCcw,
   Sparkles,
 } from 'lucide-react';
+import { safeApiFetch } from '@ecommerce/shared';
+import { BackButton } from '../components/BackButton';
 
 export const OrderTrackingPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -27,12 +29,11 @@ export const OrderTrackingPage: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/orders/${orderId}`)
-      .then((r) => r.json())
+    safeApiFetch<Order>(`/api/orders/${orderId}`)
       .then((d) => {
-        if (d.success) {
+        if (d.success && d.data) {
           setOrder(d.data);
-          setWhatsappUrl(d.whatsappSupportUrl || '');
+          setWhatsappUrl((d as any).whatsappSupportUrl || '');
         }
       })
       .finally(() => setLoading(false));
@@ -50,6 +51,9 @@ export const OrderTrackingPage: React.FC = () => {
   if (!order) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-24 text-center">
+        <div className="mb-4 flex justify-center">
+          <BackButton label="Back to Shopping" fallbackPath="/" />
+        </div>
         <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-100 text-slate-400">
           <Package className="h-10 w-10 text-slate-400" />
         </div>
@@ -71,6 +75,12 @@ export const OrderTrackingPage: React.FC = () => {
     <div className="min-h-screen bg-[#eaeded]/50 py-8">
       <div className="mx-auto max-w-6xl px-4 space-y-6">
         
+        {/* Navigation & Back Button */}
+        <div className="flex items-center justify-between">
+          <BackButton label="Back to Orders" fallbackPath="/account" />
+          <span className="text-xs text-slate-500 font-medium">Tracking Status ID: #{order.orderNumber}</span>
+        </div>
+
         {/* Top Success Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs">
           <div className="flex items-center gap-4">
@@ -80,10 +90,12 @@ export const OrderTrackingPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 uppercase">
-                  Order Confirmed
+                  Order {order.orderStatus}
                 </span>
                 <span className="text-xs text-slate-400">•</span>
-                <span className="text-xs text-slate-500">Delivery by Tomorrow 2:00 PM</span>
+                <span className="text-xs font-semibold text-slate-600">
+                  {order.fulfillmentMethod === 'takeaway' ? 'Store Pickup (Ready in 30 mins)' : 'Doorstep Delivery by Tomorrow'}
+                </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
                 Order #{order.orderNumber}

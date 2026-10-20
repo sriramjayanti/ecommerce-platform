@@ -37,3 +37,7 @@ lerna-debug.log*
 *.swo
 .DS_Store
 Thumbs.db
+
+# Local database store
+backend/data/
+

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Review } from '@ecommerce/shared';
-import { MessageSquare, Check, X, Star, Trash2, Filter } from 'lucide-react';
+import { Review, safeApiFetch } from '@ecommerce/shared';
+import { BackButton } from '../components/BackButton';
+import { Check, X, Star, Trash2, Filter } from 'lucide-react';
 
 export const ReviewsModerationPage: React.FC = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -9,10 +10,9 @@ export const ReviewsModerationPage: React.FC = () => {
 
   const fetchReviews = () => {
     setLoading(true);
-    fetch('/api/reviews')
-      .then((r) => r.json())
+    safeApiFetch<Review[]>('/api/reviews')
       .then((d) => {
-        if (d.success) setReviews(d.data);
+        if (d.success && d.data) setReviews(d.data);
       })
       .finally(() => setLoading(false));
   };
@@ -23,13 +23,12 @@ export const ReviewsModerationPage: React.FC = () => {
 
   const handleModerate = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      const res = await fetch(`/api/reviews/${id}/moderate`, {
+      const res = await safeApiFetch<{ success: boolean }>(`/api/reviews/${id}/moderate`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      const data = await res.json();
-      if (data.success) {
+      if (res.success) {
         fetchReviews();
       }
     } catch {}
@@ -38,9 +37,8 @@ export const ReviewsModerationPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this review?')) return;
     try {
-      const res = await fetch(`/api/reviews/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
+      const res = await safeApiFetch<{ success: boolean }>(`/api/reviews/${id}`, { method: 'DELETE' });
+      if (res.success) {
         fetchReviews();
       }
     } catch {}
@@ -53,10 +51,14 @@ export const ReviewsModerationPage: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
+      <div>
+        <BackButton fallback="/" label="Back to Dashboard" />
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white">Customer Reviews Moderation</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-2xl font-black text-slate-900">Customer Reviews Moderation</h1>
+          <p className="text-xs text-slate-500">
             Review customer ratings & feedback across products, and approve/hide ratings displayed on storefront.
           </p>
         </div>
@@ -66,7 +68,7 @@ export const ReviewsModerationPage: React.FC = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-300 outline-none focus:border-emerald-500"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500"
           >
             <option value="all">All Reviews ({reviews.length})</option>
             <option value="pending">Pending ({reviews.filter((r) => r.status === 'pending').length})</option>
@@ -76,44 +78,44 @@ export const ReviewsModerationPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-800 bg-slate-950 p-6 shadow-xs overflow-hidden">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs overflow-hidden">
         <div className="space-y-4">
           {loading ? (
-            <p className="text-center text-xs text-slate-500 py-8">Loading reviews...</p>
+            <p className="text-center text-xs text-slate-400 py-8">Loading reviews...</p>
           ) : filtered.length === 0 ? (
-            <p className="text-center text-xs text-slate-500 py-8">No customer reviews matching filter.</p>
+            <p className="text-center text-xs text-slate-400 py-8">No customer reviews matching filter.</p>
           ) : (
             filtered.map((rev) => (
               <div
                 key={rev.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
               >
                 <div className="space-y-1.5 text-xs">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-white text-sm">{rev.userName}</span>
-                    <div className="flex text-amber-400">
+                    <span className="font-bold text-slate-900 text-sm">{rev.userName}</span>
+                    <div className="flex text-amber-500">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
                           key={s}
-                          className={`h-3.5 w-3.5 ${s <= rev.rating ? 'fill-amber-400' : 'text-slate-700'}`}
+                          className={`h-3.5 w-3.5 ${s <= rev.rating ? 'fill-amber-400' : 'text-slate-300'}`}
                         />
                       ))}
                     </div>
                     <span
                       className={`rounded px-2 py-0.5 text-[10px] font-black uppercase ${
                         rev.status === 'approved'
-                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : rev.status === 'rejected'
-                          ? 'bg-rose-950 text-rose-400 border border-rose-800'
-                          : 'bg-amber-950 text-amber-400 border border-amber-800'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
                       }`}
                     >
                       {rev.status}
                     </span>
                   </div>
-                  <h4 className="font-bold text-slate-200 text-xs">{rev.title}</h4>
-                  <p className="text-slate-300 leading-relaxed">{rev.comment}</p>
-                  <span className="text-[10px] text-slate-500 font-mono block">
+                  <h4 className="font-bold text-slate-800 text-xs">{rev.title}</h4>
+                  <p className="text-slate-600 leading-relaxed">{rev.comment}</p>
+                  <span className="text-[10px] text-slate-400 font-mono block">
                     Product ID: {rev.productId} • {new Date(rev.createdAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -122,7 +124,7 @@ export const ReviewsModerationPage: React.FC = () => {
                   {rev.status !== 'approved' && (
                     <button
                       onClick={() => handleModerate(rev.id, 'approved')}
-                      className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-500"
+                      className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-xs transition"
                     >
                       <Check className="h-3.5 w-3.5" />
                       <span>Approve</span>
@@ -131,7 +133,7 @@ export const ReviewsModerationPage: React.FC = () => {
                   {rev.status !== 'rejected' && (
                     <button
                       onClick={() => handleModerate(rev.id, 'rejected')}
-                      className="inline-flex items-center gap-1 rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-bold text-rose-400 hover:bg-slate-700"
+                      className="inline-flex items-center gap-1 rounded-xl bg-slate-100 border border-slate-200 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 transition"
                     >
                       <X className="h-3.5 w-3.5" />
                       <span>Reject</span>
@@ -139,7 +141,7 @@ export const ReviewsModerationPage: React.FC = () => {
                   )}
                   <button
                     onClick={() => handleDelete(rev.id)}
-                    className="rounded-xl bg-slate-900 border border-slate-800 p-2 text-slate-500 hover:text-rose-400"
+                    className="rounded-xl bg-white border border-slate-200 p-2 text-slate-400 hover:text-rose-600 transition"
                     title="Delete review"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

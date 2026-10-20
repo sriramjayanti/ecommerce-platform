@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Product, Category, INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '@ecommerce/shared';
+import { Product, Category, INITIAL_PRODUCTS, INITIAL_CATEGORIES, safeApiFetch } from '@ecommerce/shared';
 import { ProductCard } from '../components/ProductCard';
+import { BackButton } from '../components/BackButton';
 import {
   Filter,
   SlidersHorizontal,
@@ -34,8 +35,8 @@ export const CategoryPage: React.FC = () => {
     if (found) setCurrentCategory(found);
 
     Promise.all([
-      fetch('/api/products').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-      fetch('/api/categories').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
+      safeApiFetch<Product[]>('/api/products').catch(() => ({ success: false, data: [] as Product[] })),
+      safeApiFetch<Category[]>('/api/categories').catch(() => ({ success: false, data: [] as Category[] })),
     ])
       .then(([pRes, cRes]) => {
         if (pRes.success && pRes.data?.length) setProducts(pRes.data);
@@ -83,14 +84,17 @@ export const CategoryPage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 py-6 font-sans">
       <div className="max-w-7xl mx-auto px-4 space-y-6">
         
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-          <Link to="/" className="hover:text-amber-600">Home</Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-slate-900 font-bold">
-            {currentCategory?.name || categorySlug}
-          </span>
-        </nav>
+        {/* Navigation & Breadcrumbs */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <BackButton fallback="/" label="Back to Departments" />
+          <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+            <Link to="/" className="hover:text-amber-600">Home</Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="text-slate-900 font-bold">
+              {currentCategory?.name || categorySlug}
+            </span>
+          </nav>
+        </div>
 
         {/* Category Hero Banner */}
         {currentCategory && (

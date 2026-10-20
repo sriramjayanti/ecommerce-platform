@@ -3,6 +3,7 @@ import {
   OrderItemSnapshot,
   OrderStatus,
   PaymentStatus,
+  PaymentMethod,
   Address,
   resolveUnitPrice,
   calculateCartTotals,
@@ -18,7 +19,8 @@ export interface CreateOrderInput {
   customerEmail?: string;
   items: { productId: string; variantId: string; quantity: number }[];
   shippingAddress: Address;
-  paymentMethod: 'online' | 'cod';
+  paymentMethod: PaymentMethod;
+  fulfillmentMethod?: 'home_delivery' | 'takeaway';
 }
 
 export class OrderService {
@@ -116,9 +118,23 @@ export class OrderService {
     paymentUrl?: string;
     paymentRecord?: any;
   }> {
+    if (!input.customerName || !input.customerPhone) {
+      throw new Error('Customer name and phone number are required.');
+    }
+
+    if (!input.items || input.items.length === 0) {
+      throw new Error('Cannot place an order with an empty cart.');
+    }
+
     const calc = this.calculateAuthoritativeOrder(input.items);
 
+    const isTakeaway = input.fulfillmentMethod === 'takeaway';
+    const effectiveDeliveryCharge = isTakeaway ? 0 : calc.deliveryCharge;
+    const effectiveFinalTotal = calc.subtotal + effectiveDeliveryCharge;
+
     const orderNumber = `ORD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+
+    const isCod = input.paymentMethod === 'cod';
 
     const order: Order = {
       id: `ord-${Date.now()}`,
@@ -132,18 +148,20 @@ export class OrderService {
       subtotal: calc.subtotal,
       totalMrp: calc.totalMrp,
       totalSavings: calc.totalSavings,
-      deliveryCharge: calc.deliveryCharge,
+      deliveryCharge: effectiveDeliveryCharge,
       taxAmount: calc.taxAmount,
       discountAmount: 0,
-      finalTotal: calc.finalTotal,
+      finalTotal: effectiveFinalTotal,
       paymentMethod: input.paymentMethod,
-      paymentStatus: input.paymentMethod === 'cod' ? 'pending' : 'initiated',
+      paymentStatus: isCod ? 'pending' : 'initiated',
+      fulfillmentMethod: input.fulfillmentMethod || 'home_delivery',
+      stockDeducted: false,
       orderStatus: 'Placed',
       statusHistory: [
         {
           status: 'Placed',
           timestamp: new Date().toISOString(),
-          note: 'Order placed by customer',
+          note: isTakeaway ? 'Order placed by customer (Takeaway / Store Pickup)' : 'Order placed by customer (Home Delivery)',
           updatedBy: input.customerName,
         },
       ],
@@ -151,9 +169,19 @@ export class OrderService {
       updatedAt: new Date().toISOString(),
     };
 
-    db.orders.unshift(order);
-
-    if (input.paymentMethod === 'online') {
+    if (isCod) {
+      // COD: Deduct stock immediately
+      await InventoryService.deductStockForOrder(
+        input.items,
+        order.orderNumber,
+        'cod_order_placement'
+      );
+      order.stockDeducted = true;
+      db.orders.unshift(order);
+      db.saveToDisk();
+      return { order };
+    } else {
+      // Online payment method (UPI, Card, Netbanking, etc.)
       const { paymentRecord, redirectUrl } = await PhonePeService.initiatePayment(
         order.id,
         order.finalTotal,
@@ -161,15 +189,9 @@ export class OrderService {
         order.userId
       );
       order.paymentId = paymentRecord.id;
+      db.orders.unshift(order);
+      db.saveToDisk();
       return { order, paymentUrl: redirectUrl, paymentRecord };
-    } else {
-      // COD: Deduct stock immediately
-      await InventoryService.deductStockForOrder(
-        input.items,
-        order.orderNumber,
-        'cod_order_placement'
-      );
-      return { order };
     }
   }
 
@@ -200,43 +222,48 @@ export class OrderService {
       order.statusHistory.push({
         status: 'Confirmed',
         timestamp: new Date().toISOString(),
-        note: `Payment verified via PhonePe (Ref: ${phonepeTxnId || merchantTransactionId})`,
-        updatedBy: 'system_phonepe_webhook',
+        note: `Payment verified via Gateway (Ref: ${phonepeTxnId || merchantTransactionId})`,
+        updatedBy: 'system_payment_webhook',
       });
 
-      // Deduct stock safely inside transaction
-      await InventoryService.deductStockForOrder(
-        order.items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })),
-        order.orderNumber,
-        'phonepe_verified_payment'
-      );
+      // Deduct stock safely inside transaction if not already deducted
+      if (!order.stockDeducted) {
+        await InventoryService.deductStockForOrder(
+          order.items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })),
+          order.orderNumber,
+          'online_verified_payment'
+        );
+        order.stockDeducted = true;
+      }
     } else {
       order.orderStatus = 'Cancelled';
       order.statusHistory.push({
         status: 'Cancelled',
         timestamp: new Date().toISOString(),
         note: `Payment ${verifiedStatus} by user or gateway`,
-        updatedBy: 'system_phonepe_webhook',
+        updatedBy: 'system_payment_webhook',
       });
     }
 
+    db.saveToDisk();
     return order;
   }
 
   /**
    * Updates fulfillment status (Admin action)
    */
-  public static updateFulfillmentStatus(
+  public static async updateFulfillmentStatus(
     orderId: string,
     newStatus: OrderStatus,
     note?: string,
     updatedBy: string = 'admin'
-  ): Order {
+  ): Promise<Order> {
     const order = db.orders.find((o) => o.id === orderId);
     if (!order) {
       throw new Error(`Order ${orderId} not found`);
     }
 
+    const previousStatus = order.orderStatus;
     order.orderStatus = newStatus;
     order.statusHistory.push({
       status: newStatus,
@@ -246,6 +273,18 @@ export class OrderService {
     });
     order.updatedAt = new Date().toISOString();
 
+    // If order is cancelled, safely restore stock if it was previously deducted
+    if (newStatus === 'Cancelled' && previousStatus !== 'Cancelled' && order.stockDeducted) {
+      await InventoryService.restoreStockForOrder(
+        order.items.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity })),
+        order.orderNumber,
+        'return_restock',
+        `admin_status_update_${updatedBy}`
+      );
+      order.stockDeducted = false;
+    }
+
+    db.saveToDisk();
     return order;
   }
 

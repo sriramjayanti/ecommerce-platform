@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserProfile, UserRole } from '@ecommerce/shared';
+import { UserProfile, UserRole, safeApiFetch } from '@ecommerce/shared';
 
 interface AdminAuthContextType {
   adminUser: UserProfile | null;
@@ -77,8 +77,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const resetDemoData = async (): Promise<boolean> => {
     setIsSeeding(true);
     try {
-      const res = await fetch('/api/admin/seed', { method: 'POST' });
-      const data = await res.json();
+      const data = await safeApiFetch<{ success: boolean }>('/api/admin/seed', { method: 'POST' });
       return !!data.success;
     } catch {
       return false;

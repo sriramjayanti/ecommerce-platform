@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Product, ProductVariant, Review, INITIAL_PRODUCTS } from '@ecommerce/shared';
+import { Product, ProductVariant, Review, INITIAL_PRODUCTS, safeApiFetch } from '@ecommerce/shared';
 import { useCart } from '../context/CartContext';
 import { WholesaleTierTable } from '../components/WholesaleTierTable';
+import { BackButton } from '../components/BackButton';
 import {
   Star,
   ShoppingBag,
@@ -58,8 +59,7 @@ export const ProductDetailPage: React.FC = () => {
       setLoading(false);
     }
 
-    fetch(`/api/products/${idOrSlug}`)
-      .then((r) => r.json())
+    safeApiFetch<Product>(`/api/products/${idOrSlug}`)
       .then((d) => {
         if (d.success && d.data) {
           const prod: Product = d.data;
@@ -69,16 +69,14 @@ export const ProductDetailPage: React.FC = () => {
           setSelectedImage(prod.images[0] || '');
 
           // Fetch reviews
-          fetch(`/api/reviews?productId=${prod.id}`)
-            .then((res) => res.json())
+          safeApiFetch<Review[]>(`/api/reviews?productId=${prod.id}`)
             .then((rData) => {
-              if (rData.success) setReviews(rData.data);
+              if (rData.success && rData.data) setReviews(rData.data);
             })
             .catch(() => {});
 
           // Fetch other catalog items for bundle
-          fetch('/api/products')
-            .then((res) => res.json())
+          safeApiFetch<Product[]>('/api/products')
             .then((allP) => {
               if (allP.success && allP.data?.length) {
                 const others = allP.data.filter((p: Product) => p.id !== prod.id).slice(0, 2);
@@ -151,18 +149,21 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 py-6 font-sans">
-      <div className="max-w-7xl mx-auto px-4 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 space-y-6">
         
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-          <Link to="/" className="hover:text-amber-600">Home</Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <Link to={`/category/${product.categoryId}`} className="hover:text-amber-600">
-            {product.categoryId.replace('cat-', '').replace('-', ' ').toUpperCase()}
-          </Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-slate-900 font-bold truncate max-w-xs">{product.title}</span>
-        </nav>
+        {/* Back Navigation & Breadcrumb */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <BackButton fallback="/" label="Back to Shopping" />
+          <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+            <Link to="/" className="hover:text-amber-600">Home</Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <Link to={`/category/${product.categoryId}`} className="hover:text-amber-600">
+              {product.categoryId.replace('cat-', '').replace('-', ' ').toUpperCase()}
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="text-slate-900 font-bold truncate max-w-xs">{product.title}</span>
+          </nav>
+        </div>
 
         {/* 3-COLUMN AMAZON / FLIPKART PRODUCT SHOWCASE */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -387,22 +388,35 @@ export const ProductDetailPage: React.FC = () => {
 
               {/* In Stock & Quantity */}
               <div className="border-t border-slate-100 pt-3 space-y-3">
-                <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-black uppercase">
-                  In Stock ({selectedVariant.stock} available)
-                </span>
+                {selectedVariant.stock <= 0 ? (
+                  <span className="inline-block rounded-md bg-rose-100 text-rose-800 px-2 py-0.5 text-[11px] font-black uppercase">
+                    Out of Stock
+                  </span>
+                ) : selectedVariant.stock <= (selectedVariant.lowStockThreshold || 5) ? (
+                  <span className="inline-block rounded-md bg-amber-100 text-amber-900 px-2 py-0.5 text-[11px] font-black uppercase">
+                    Only {selectedVariant.stock} units left in stock!
+                  </span>
+                ) : (
+                  <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-black uppercase">
+                    In Stock ({selectedVariant.stock} available)
+                  </span>
+                )}
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">Quantity:</label>
                   <select
                     value={quantity}
+                    disabled={selectedVariant.stock <= 0}
                     onChange={(e) => setQuantity(Number(e.target.value))}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-amber-500"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {[1, 2, 3, 4, 5, 6, 10, 15, 25, 50].map((num) => (
-                      <option key={num} value={num}>
-                        {num} {num === 1 ? 'unit' : 'units'}
-                      </option>
-                    ))}
+                    {[1, 2, 3, 4, 5, 6, 10, 15, 25, 50]
+                      .filter((num) => num <= Math.max(1, selectedVariant.stock))
+                      .map((num) => (
+                        <option key={num} value={num}>
+                          {num} {num === 1 ? 'unit' : 'units'}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -411,15 +425,25 @@ export const ProductDetailPage: React.FC = () => {
               <div className="space-y-2 pt-2">
                 <button
                   onClick={handleAddToCart}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-400 hover:bg-amber-500 active:scale-95 py-3 text-xs font-black text-slate-950 shadow-md transition"
+                  disabled={selectedVariant.stock <= 0}
+                  className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-black shadow-md transition ${
+                    selectedVariant.stock <= 0
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-amber-400 hover:bg-amber-500 active:scale-95 text-slate-950'
+                  }`}
                 >
                   <ShoppingBag className="h-4 w-4" />
-                  <span>Add to Cart</span>
+                  <span>{selectedVariant.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}</span>
                 </button>
 
                 <button
                   onClick={handleBuyNow}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 py-3 text-xs font-black text-white shadow-md transition"
+                  disabled={selectedVariant.stock <= 0}
+                  className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-black shadow-md transition ${
+                    selectedVariant.stock <= 0
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white'
+                  }`}
                 >
                   <Zap className="h-4 w-4 fill-white" />
                   <span>Buy Now</span>

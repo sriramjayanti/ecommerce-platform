@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import {
   Product,
   Category,
@@ -15,8 +17,11 @@ import {
   INITIAL_BANNERS,
 } from '@ecommerce/shared';
 
+const DATA_DIR = path.resolve(__dirname, '../../data');
+const DATA_FILE = path.join(DATA_DIR, 'store.json');
+
 /**
- * In-Memory & Production Data Store
+ * In-Memory & Production Data Store with Disk Persistence
  * Seeded with full-scale multi-department marketplace catalog (Mobiles, Electronics, Fashion, Home, Groceries, Appliances & Wholesale).
  */
 class DataStore {
@@ -32,6 +37,52 @@ class DataStore {
   public auditLogs: AuditLog[] = [];
 
   constructor() {
+    this.loadFromDisk();
+  }
+
+  public saveToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      const data = {
+        products: this.products,
+        categories: this.categories,
+        orders: this.orders,
+        payments: this.payments,
+        settings: this.settings,
+        banners: this.banners,
+        inventoryLogs: this.inventoryLogs,
+        reviews: this.reviews,
+        users: this.users,
+        auditLogs: this.auditLogs,
+      };
+      fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('Error saving data to disk:', err);
+    }
+  }
+
+  public loadFromDisk() {
+    try {
+      if (fs.existsSync(DATA_FILE)) {
+        const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+        const data = JSON.parse(raw);
+        this.products = data.products || [];
+        this.categories = data.categories || [];
+        this.orders = data.orders || [];
+        this.payments = data.payments || [];
+        this.settings = data.settings || { ...DEFAULT_STORE_SETTINGS };
+        this.banners = data.banners || [];
+        this.inventoryLogs = data.inventoryLogs || [];
+        this.reviews = data.reviews || [];
+        this.users = data.users || [];
+        this.auditLogs = data.auditLogs || [];
+        return;
+      }
+    } catch (err) {
+      console.error('Error loading data from disk, re-seeding:', err);
+    }
     this.resetDemoData();
   }
 
@@ -163,6 +214,8 @@ class DataStore {
         createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
       },
     ];
+
+    this.saveToDisk();
   }
 }
 

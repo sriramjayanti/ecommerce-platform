@@ -175,6 +175,8 @@ export interface OrderStatusHistoryItem {
   updatedBy?: string;
 }
 
+export type PaymentMethod = 'upi' | 'credit_card' | 'debit_card' | 'cod' | 'online';
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -191,9 +193,11 @@ export interface Order {
   taxAmount: number;
   discountAmount: number;
   finalTotal: number;
-  paymentMethod: 'online' | 'cod';
+  paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   paymentId?: string;
+  fulfillmentMethod?: 'home_delivery' | 'takeaway';
+  stockDeducted?: boolean;
   orderStatus: OrderStatus;
   statusHistory: OrderStatusHistoryItem[];
   staffNotes?: string[];

@@ -19,6 +19,7 @@ import {
   Database,
   ShieldCheck,
 } from 'lucide-react';
+import { safeApiFetch } from '@ecommerce/shared';
 
 export const Header: React.FC = () => {
   const { totals, wishlistIds, setDrawerOpen, settings } = useCart();
@@ -33,10 +34,9 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
 
   const fetchCategories = () => {
-    fetch('/api/categories')
-      .then((r) => r.json())
+    safeApiFetch<any[]>('/api/categories')
       .then((d) => {
-        if (d.success) setCategories(d.data);
+        if (d.success && d.data) setCategories(d.data);
       })
       .catch(() => {});
   };
@@ -71,8 +71,7 @@ export const Header: React.FC = () => {
     setIsSeeding(true);
     setSeedNotice(null);
     try {
-      const res = await fetch('/api/admin/seed', { method: 'POST' });
-      const data = await res.json();
+      const data = await safeApiFetch<{ success: boolean }>('/api/admin/seed', { method: 'POST' });
       if (data.success) {
         setSeedNotice('24+ Products, 10 Categories & 12 Orders reloaded!');
         fetchCategories();

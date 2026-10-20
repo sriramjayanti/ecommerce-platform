@@ -55,6 +55,46 @@ export class InventoryService {
 
       db.inventoryLogs.unshift(log);
     }
+    db.saveToDisk();
+  }
+
+  /**
+   * Restores stock for cancelled order items safely
+   */
+  public static async restoreStockForOrder(
+    items: { productId: string; variantId: string; quantity: number }[],
+    orderNumber: string,
+    reason: 'return_restock' | 'audit_correction' = 'return_restock',
+    performedBy: string = 'system_order_cancellation'
+  ): Promise<void> {
+    for (const item of items) {
+      const product = db.products.find((p) => p.id === item.productId);
+      if (!product) continue;
+      const variant = product.variants.find((v) => v.id === item.variantId);
+      if (!variant) continue;
+
+      const previousStock = variant.stock;
+      variant.stock += item.quantity;
+      product.updatedAt = new Date().toISOString();
+
+      const log: InventoryLog = {
+        id: `inv-log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        productId: product.id,
+        variantId: variant.id,
+        productName: product.title,
+        variantName: variant.name,
+        previousStock,
+        change: item.quantity,
+        newStock: variant.stock,
+        reason,
+        referenceId: orderNumber,
+        createdBy: performedBy,
+        createdAt: new Date().toISOString(),
+      };
+
+      db.inventoryLogs.unshift(log);
+    }
+    db.saveToDisk();
   }
 
   /**
@@ -100,6 +140,7 @@ export class InventoryService {
     };
 
     db.inventoryLogs.unshift(log);
+    db.saveToDisk();
 
     return { variant, log };
   }
@@ -147,6 +188,7 @@ export class InventoryService {
     };
 
     db.inventoryLogs.unshift(log);
+    db.saveToDisk();
 
     return { variant, log };
   }

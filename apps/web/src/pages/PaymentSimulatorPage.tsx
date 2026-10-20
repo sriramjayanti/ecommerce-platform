@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { safeApiFetch } from '@ecommerce/shared';
+import { BackButton } from '../components/BackButton';
 import { ShieldCheck, CheckCircle2, XCircle, AlertTriangle, ArrowLeft, Lock } from 'lucide-react';
 
 export const PaymentSimulatorPage: React.FC = () => {
@@ -12,11 +14,13 @@ export const PaymentSimulatorPage: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [upiId, setUpiId] = useState('user@okaxis');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSimulate = async (outcome: 'successful' | 'failed' | 'cancelled') => {
     setLoading(true);
+    setErrorMsg(null);
     try {
-      const response = await fetch('/api/payments/verify', {
+      const result = await safeApiFetch('/api/payments/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -26,23 +30,32 @@ export const PaymentSimulatorPage: React.FC = () => {
         }),
       });
 
-      const result = await response.json();
       if (result.success && outcome === 'successful') {
         navigate(`/order/${result.data.orderNumber}`);
-      } else {
+      } else if (result.success) {
         alert(`Payment ${outcome}. The order has been marked accordingly.`);
         navigate('/');
+      } else {
+        throw new Error(result.error || `Failed to process payment outcome ${outcome}`);
       }
     } catch (err: any) {
-      alert('Verification error: ' + err.message);
+      setErrorMsg('Verification error: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md mb-3 flex items-center justify-start">
+        <BackButton label="Back to Checkout" fallbackPath="/checkout" className="text-white bg-slate-800 border-slate-700 hover:bg-slate-700" />
+      </div>
       <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden">
+        {errorMsg && (
+          <div className="bg-rose-50 border-b border-rose-200 p-3 text-xs text-rose-800 font-bold">
+            {errorMsg}
+          </div>
+        )}
         
         {/* PhonePe Header */}
         <div className="bg-purple-700 p-6 text-white text-center relative">

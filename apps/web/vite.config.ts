@@ -13,8 +13,22 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (_err, _req, res) => {
+            if (!res.headersSent && typeof (res as any).writeHead === 'function') {
+              (res as any).writeHead(503, { 'Content-Type': 'application/json' });
+              (res as any).end(
+                JSON.stringify({
+                  success: false,
+                  error: 'Backend API service is unavailable. Please ensure the backend is running on port 3001.',
+                })
+              );
+            }
+          });
+        },
       },
     },
   },
