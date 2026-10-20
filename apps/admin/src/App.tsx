@@ -1,8 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
+import { AdminNavProvider } from './context/AdminNavContext';
 import { Sidebar } from './components/Sidebar';
 import { AdminHeader } from './components/AdminHeader';
+import { AdminBottomBar } from './components/AdminBottomBar';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { DashboardOverviewPage } from './pages/DashboardOverviewPage';
 import { ProductsAdminPage } from './pages/ProductsAdminPage';
@@ -23,9 +25,9 @@ function AdminLayout() {
   return (
     <div className="flex min-h-screen bg-[#eaeded]/60 text-slate-900 font-sans">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#eaeded]/60">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#eaeded]/60 relative">
         <AdminHeader />
-        <main className="flex-1 p-2 sm:p-4">
+        <main className="flex-1 p-2 sm:p-4 pb-24 lg:pb-8">
           <Routes>
             <Route path="/" element={<DashboardOverviewPage />} />
             <Route path="/products" element={<ProductsAdminPage />} />
@@ -39,6 +41,8 @@ function AdminLayout() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+        {/* Mobile Bottom Navigation Bar */}
+        <AdminBottomBar />
       </div>
     </div>
   );
@@ -48,7 +52,9 @@ export function App() {
   return (
     <BrowserRouter>
       <AdminAuthProvider>
-        <AdminLayout />
+        <AdminNavProvider>
+          <AdminLayout />
+        </AdminNavProvider>
       </AdminAuthProvider>
     </BrowserRouter>
   );
