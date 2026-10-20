@@ -86,9 +86,12 @@ export interface Category {
   name: string;
   slug: string;
   image?: string;
+  imageUrl?: string;
+  description?: string;
   icon?: string;
   sortOrder: number;
-  isVisible: boolean;
+  isVisible?: boolean;
+  isActive?: boolean;
   subcategories?: { id: string; name: string; slug: string }[];
 }
 
@@ -185,13 +188,14 @@ export interface Order {
   customerPhone: string;
   customerEmail?: string;
   items: OrderItemSnapshot[];
-  shippingAddress: Address;
+  shippingAddress?: Address;
+  deliveryAddress?: any;
   subtotal: number;
-  totalMrp: number;
-  totalSavings: number;
+  totalMrp?: number;
+  totalSavings?: number;
   deliveryCharge: number;
-  taxAmount: number;
-  discountAmount: number;
+  taxAmount?: number;
+  discountAmount?: number;
   finalTotal: number;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
@@ -199,7 +203,7 @@ export interface Order {
   fulfillmentMethod?: 'home_delivery' | 'takeaway';
   stockDeducted?: boolean;
   orderStatus: OrderStatus;
-  statusHistory: OrderStatusHistoryItem[];
+  statusHistory?: OrderStatusHistoryItem[];
   staffNotes?: string[];
   createdAt: string;
   updatedAt: string;
