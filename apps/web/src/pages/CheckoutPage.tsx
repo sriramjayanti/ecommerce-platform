@@ -684,6 +684,10 @@ export const CheckoutPage: React.FC = () => {
                     )}
                   </span>
                 </div>
+                <div className="flex justify-between text-slate-500 text-[11px]">
+                  <span>GST & Taxes (Included in Product MRP)</span>
+                  <span>₹{totals.taxAmount}</span>
+                </div>
                 <div className="flex justify-between">
                   <span>Payment Method</span>
                   <span className="font-bold text-slate-800 uppercase text-[11px]">

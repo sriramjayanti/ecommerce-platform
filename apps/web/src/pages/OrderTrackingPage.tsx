@@ -274,20 +274,34 @@ export const OrderTrackingPage: React.FC = () => {
           <div className="lg:col-span-4 space-y-4">
             
             {/* Delivery Address Card */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <span>Delivery Address</span>
-              </h3>
-              <div className="text-xs text-slate-600 leading-relaxed space-y-1">
-                <p className="font-bold text-slate-900 text-sm">{order.shippingAddress.fullName}</p>
-                <p>{order.shippingAddress.line1}</p>
-                {order.shippingAddress.line2 && <p>{order.shippingAddress.line2}</p>}
-                {order.shippingAddress.landmark && <p>Near {order.shippingAddress.landmark}</p>}
-                <p>{order.shippingAddress.city}, {order.shippingAddress.state} - <span className="font-bold text-slate-800">{order.shippingAddress.pincode}</span></p>
-                <p className="pt-2 font-medium text-slate-700">Phone: <span className="font-bold text-slate-900">{order.shippingAddress.phone}</span></p>
-              </div>
-            </div>
+            {(() => {
+              const addr = order.shippingAddress || {
+                fullName: order.customerName,
+                line1: order.deliveryAddress?.addressLine || (order.fulfillmentMethod === 'takeaway' ? 'DailyMart Store Pickup Counter' : 'Home Address'),
+                line2: '',
+                landmark: '',
+                city: order.deliveryAddress?.city || 'Bengaluru',
+                state: 'Karnataka',
+                pincode: order.deliveryAddress?.pincode || '560034',
+                phone: order.customerPhone,
+              };
+              return (
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-blue-600" />
+                    <span>{order.fulfillmentMethod === 'takeaway' ? 'Store Pickup Counter' : 'Delivery Address'}</span>
+                  </h3>
+                  <div className="text-xs text-slate-600 leading-relaxed space-y-1">
+                    <p className="font-bold text-slate-900 text-sm">{addr.fullName}</p>
+                    <p>{addr.line1}</p>
+                    {addr.line2 && <p>{addr.line2}</p>}
+                    {addr.landmark && <p>Near {addr.landmark}</p>}
+                    <p>{addr.city}, {addr.state} - <span className="font-bold text-slate-800">{addr.pincode}</span></p>
+                    <p className="pt-2 font-medium text-slate-700">Phone: <span className="font-bold text-slate-900">{addr.phone}</span></p>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Payment & Price Summary */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs space-y-4">
@@ -321,7 +335,7 @@ export const OrderTrackingPage: React.FC = () => {
                   <span>Items Subtotal</span>
                   <span className="font-bold text-slate-900">₹{order.subtotal}</span>
                 </div>
-                {order.totalSavings > 0 && (
+                {(order.totalSavings ?? 0) > 0 && (
                   <div className="flex justify-between text-emerald-700 font-bold">
                     <span>Wholesale & Offer Savings</span>
                     <span>- ₹{order.totalSavings}</span>
@@ -331,9 +345,9 @@ export const OrderTrackingPage: React.FC = () => {
                   <span>Delivery Charges</span>
                   <span>{order.deliveryCharge === 0 ? <span className="font-bold text-emerald-700">FREE</span> : `₹${order.deliveryCharge}`}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Taxes & GST</span>
-                  <span>₹{order.taxAmount}</span>
+                <div className="flex justify-between text-[11px] text-slate-500">
+                  <span>Taxes & GST (Included in MRP)</span>
+                  <span>₹{order.taxAmount ?? Math.round((order.subtotal * 0.05))}</span>
                 </div>
                 <div className="flex justify-between border-t border-slate-200 pt-3 text-base font-black text-slate-900">
                   <span>Total Amount</span>

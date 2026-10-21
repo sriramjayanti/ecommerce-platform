@@ -53,10 +53,20 @@ export const CategoryPage: React.FC = () => {
   }, [categorySlug]);
 
   const filteredProducts = products.filter((p) => {
+    const activeCat = categories.find(
+      (c) => c.slug === categorySlug || c.id === categorySlug || c.slug?.toLowerCase() === categorySlug?.toLowerCase()
+    ) || currentCategory;
+
     const isCategoryMatch =
       p.categoryId === categorySlug ||
       p.subcategoryId === categorySlug ||
-      (currentCategory && p.categoryId === currentCategory.id);
+      (activeCat && (
+        p.categoryId === activeCat.id ||
+        p.categoryId === activeCat.slug ||
+        p.categoryId?.toLowerCase() === activeCat.id?.toLowerCase() ||
+        p.categoryId?.toLowerCase() === activeCat.slug?.toLowerCase() ||
+        p.categoryId?.toLowerCase() === activeCat.name?.toLowerCase()
+      ));
 
     if (!isCategoryMatch) return false;
     if (selectedSubcategory !== 'all' && p.subcategoryId !== selectedSubcategory) return false;

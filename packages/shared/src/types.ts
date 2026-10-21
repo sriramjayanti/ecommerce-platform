@@ -109,6 +109,9 @@ export interface CartItem {
   savings: number;
   maxStock: number;
   appliedTierId?: string;
+  appliedTierLabel?: string;
+  pricingTiers?: PriceTier[];
+  isWholesaleEnabled?: boolean;
 }
 
 export interface CartTotals {

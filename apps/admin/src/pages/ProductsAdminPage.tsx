@@ -88,7 +88,7 @@ export const ProductsAdminPage: React.FC = () => {
     setTitle('');
     setDescription('');
     setBrand('');
-    setCategoryId(categories[0]?.id || 'cat-staples');
+    setCategoryId(categories[0]?.id || '');
     setSubcategoryId('');
     setImageUrl(PRESET_IMAGES[0].url);
     setIsWholesaleEnabled(true);
@@ -121,7 +121,10 @@ export const ProductsAdminPage: React.FC = () => {
     setTitle(product.title);
     setDescription(product.description || '');
     setBrand(product.brand || '');
-    setCategoryId(product.categoryId);
+    const matchedCategory = categories.find(
+      (c) => c.id === product.categoryId || c.slug === product.categoryId || c.name.toLowerCase() === product.categoryId.toLowerCase()
+    );
+    setCategoryId(matchedCategory ? matchedCategory.id : product.categoryId);
     setSubcategoryId(product.subcategoryId || '');
     setImageUrl(product.images[0] || PRESET_IMAGES[0].url);
     setIsWholesaleEnabled(product.isWholesaleEnabled);
@@ -552,14 +555,24 @@ export const ProductsAdminPage: React.FC = () => {
                   <label className="block font-bold text-slate-700 mb-1">Category *</label>
                   <select
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
+                    onChange={(e) => {
+                      setCategoryId(e.target.value);
+                      setSubcategoryId('');
+                    }}
                     className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500 font-bold"
                   >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
+                    {categories.length === 0 ? (
+                      <option value="">No categories found - please create one</option>
+                    ) : (
+                      <>
+                        {!categoryId && <option value="">-- Select a Category --</option>}
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </>
+                    )}
                   </select>
                 </div>
 

@@ -103,7 +103,7 @@ export const MegaHeader: React.FC = () => {
 
           {/* Right Links */}
           <div className="flex items-center gap-4 text-[11px] font-semibold">
-            <Link to="/order/AMZ-2026-9021" className="hover:text-amber-300 transition hidden sm:inline">
+            <Link to="/account" className="hover:text-amber-300 transition hidden sm:inline">
               Track Order
             </Link>
             <a

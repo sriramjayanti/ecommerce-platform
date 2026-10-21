@@ -440,9 +440,23 @@ app.post('/api/orders', async (req, res) => {
 });
 
 app.get('/api/orders', (req, res) => {
-  const { userId } = req.query;
+  const { userId, phone } = req.query;
   if (userId && typeof userId === 'string') {
-    const userOrders = db.orders.filter((o) => o.userId === userId);
+    const cleanQuery = userId.replace(/\D/g, '');
+    const userOrders = db.orders.filter((o) => {
+      if (o.userId === userId) return true;
+      if (cleanQuery && o.customerPhone && o.customerPhone.replace(/\D/g, '').includes(cleanQuery.slice(-10))) {
+        return true;
+      }
+      return false;
+    });
+    return res.json({ success: true, data: userOrders });
+  }
+  if (phone && typeof phone === 'string') {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const userOrders = db.orders.filter(
+      (o) => o.customerPhone && o.customerPhone.replace(/\D/g, '').includes(cleanPhone)
+    );
     return res.json({ success: true, data: userOrders });
   }
   res.json({ success: true, data: db.orders });

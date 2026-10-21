@@ -14,8 +14,11 @@ import {
   fsCreateProduct,
   fsUpdateProduct,
   fsGetOrders,
+  fsGetOrderById,
   fsCreateOrder,
   fsUpdateOrderStatus,
+  fsVerifyPayment,
+  fsGetProductByIdOrSlug,
   fsAdjustStock,
   fsGetSettings,
   fsUpdateSettings,
@@ -76,7 +79,7 @@ async function handleFirestoreFallback<T>(
     const pathname = parsed.pathname;
 
     // --- CATEGORIES ---
-    if (pathname === '/api/categories') {
+    if (pathname === '/api/categories' || pathname === '/api/admin/categories') {
       if (method === 'GET') {
         const cats = await fsGetCategories();
         return { success: true, data: cats as any };
@@ -86,8 +89,8 @@ async function handleFirestoreFallback<T>(
       }
     }
 
-    if (pathname.startsWith('/api/categories/')) {
-      const id = pathname.replace('/api/categories/', '');
+    if (pathname.startsWith('/api/categories/') || pathname.startsWith('/api/admin/categories/')) {
+      const id = pathname.replace('/api/admin/categories/', '').replace('/api/categories/', '');
       if (method === 'PUT') {
         return (await fsUpdateCategory(id, body)) as any;
       }
@@ -108,11 +111,16 @@ async function handleFirestoreFallback<T>(
       }
     }
 
-    if (pathname.startsWith('/api/products/')) {
-      const sub = pathname.replace('/api/products/', '');
+    if (pathname.startsWith('/api/products/') || pathname.startsWith('/api/admin/products/')) {
+      const sub = pathname.replace('/api/admin/products/', '').replace('/api/products/', '');
       if (sub.endsWith('/status') && method === 'PATCH') {
         const id = sub.replace('/status', '');
         return (await fsUpdateProduct(id, { status: body?.status })) as any;
+      }
+      if (method === 'GET') {
+        const prod = await fsGetProductByIdOrSlug(sub);
+        if (!prod) return { success: false, error: 'Product not found' };
+        return { success: true, data: prod as any };
       }
       if (method === 'PUT') {
         return (await fsUpdateProduct(sub, body)) as any;
@@ -140,6 +148,16 @@ async function handleFirestoreFallback<T>(
         const id = sub.replace('/status', '');
         return (await fsUpdateOrderStatus(id, body?.status, body?.note)) as any;
       }
+      if (method === 'GET') {
+        const order = await fsGetOrderById(sub);
+        if (!order) return { success: false, error: 'Order not found' };
+        return { success: true, data: order as any };
+      }
+    }
+
+    // --- PAYMENTS ---
+    if (pathname === '/api/payments/verify' && method === 'POST') {
+      return (await fsVerifyPayment(body?.merchantTransactionId, body?.status || 'successful', body?.phonepeTxnId)) as any;
     }
 
     // --- INVENTORY ---

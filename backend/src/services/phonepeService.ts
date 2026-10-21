@@ -18,7 +18,7 @@ export const PHONEPE_CONFIG: PhonePeConfig = {
   saltIndex: Number(process.env.PHONEPE_SALT_INDEX) || 1,
   apiEndpoint: process.env.PHONEPE_API_ENDPOINT || 'https://api-preprod.phonepe.com/apis/pg-sandbox',
   redirectUrl: process.env.PHONEPE_REDIRECT_URL || 'http://localhost:5173/payment/callback',
-  callbackUrl: process.env.PHONEPE_CALLBACK_URL || 'http://localhost:3000/api/payments/webhook',
+  callbackUrl: process.env.PHONEPE_CALLBACK_URL || 'http://localhost:3001/api/payments/webhook',
   isSandbox: true,
 };
 

@@ -98,6 +98,14 @@ export const CartDrawer: React.FC = () => {
                       </button>
                     </div>
                     <span className="text-[11px] text-slate-500 font-medium">{item.variantName}</span>
+                    {item.appliedTierLabel && (
+                      <div className="mt-0.5">
+                        <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
+                          <Zap className="h-3 w-3 fill-amber-600 text-amber-600" />
+                          {item.appliedTierLabel}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Unit price indicator */}
                     <div className="mt-1 flex items-baseline gap-1.5">

@@ -17,6 +17,8 @@ import {
   Category,
   Product,
   Order,
+  OrderItemSnapshot,
+  Address,
   InventoryLog,
   StoreSettings,
   Banner,
@@ -65,6 +67,18 @@ const SAMPLE_ORDERS: Order[] = [
         appliedTierLabel: 'Wholesale (5+ units)',
       },
     ],
+    shippingAddress: {
+      id: 'addr-sample-1',
+      userId: 'user-customer-1',
+      fullName: 'Amit Verma',
+      phone: '+919834567890',
+      line1: 'Flat 402, Green Glen Layout, Bellandur',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      pincode: '560103',
+      addressType: 'home',
+      isDefault: true,
+    },
     deliveryAddress: {
       addressLine: 'Flat 402, Green Glen Layout, Bellandur',
       city: 'Bengaluru',
@@ -149,13 +163,16 @@ export async function fsCreateCategory(categoryData: Partial<Category>): Promise
   }
 
   const newCategory: Category = {
-    id: `cat-${Date.now()}`,
+    id: categoryData.id || `cat-${Date.now()}`,
     name: trimmedName,
     slug: categoryData.slug || trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    imageUrl: categoryData.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200',
+    imageUrl: categoryData.imageUrl || categoryData.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200',
+    image: categoryData.image || categoryData.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200',
     description: categoryData.description || '',
     sortOrder: categoryData.sortOrder || existing.length + 1,
+    isVisible: categoryData.isVisible !== false,
     isActive: categoryData.isActive !== false,
+    subcategories: Array.isArray(categoryData.subcategories) ? categoryData.subcategories : [],
   };
 
   await setDoc(doc(firestore, 'categories', newCategory.id), newCategory);
@@ -173,8 +190,14 @@ export async function fsUpdateCategory(id: string, updates: Partial<Category>): 
     }
   }
 
+  const normalizedUpdates = {
+    ...updates,
+    image: updates.image || updates.imageUrl,
+    imageUrl: updates.imageUrl || updates.image,
+  };
+
   const ref = doc(firestore, 'categories', id);
-  await updateDoc(ref, updates as any);
+  await updateDoc(ref, normalizedUpdates as any);
   const snap = await getDoc(ref);
   return { success: true, data: snap.data() as Category };
 }
@@ -226,6 +249,16 @@ export async function fsCreateProduct(productData: any): Promise<{ success: bool
     return { success: false, error: 'Please select a product category' };
   }
 
+  // Resolve categoryId against existing categories (supports ID, slug, or exact name)
+  const existingCats = await fsGetCategories();
+  const matchedCat = existingCats.find(
+    (c) =>
+      c.id === productData.categoryId ||
+      c.slug === productData.categoryId ||
+      c.name.trim().toLowerCase() === String(productData.categoryId).trim().toLowerCase()
+  );
+  const resolvedCategoryId = matchedCat ? matchedCat.id : productData.categoryId;
+
   const variants = Array.isArray(productData.variants) && productData.variants.length > 0
     ? productData.variants
     : [
@@ -256,17 +289,23 @@ export async function fsCreateProduct(productData: any): Promise<{ success: bool
   }
 
   const newProduct: Product = {
-    id: `prod-${Date.now()}`,
+    id: productData.id || `prod-${Date.now()}`,
     title: trimmedTitle,
     slug: productData.slug || trimmedTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     description: productData.description || '',
-    categoryId: productData.categoryId,
+    categoryId: resolvedCategoryId,
+    subcategoryId: productData.subcategoryId || '',
     brand: productData.brand || 'DailyFresh',
-    images: productData.images || ['https://images.unsplash.com/photo-1542838132-92c53300491e?w=500'],
-    rating: 5.0,
-    reviewCount: 0,
+    images: Array.isArray(productData.images) && productData.images.length > 0
+      ? productData.images
+      : [productData.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500'],
+    rating: productData.rating || 5.0,
+    reviewCount: productData.reviewCount || 0,
+    badge: productData.badge || (productData.isBestSeller ? 'Bestseller' : productData.isFeatured ? 'Featured' : ''),
     status: productData.status || 'active',
     isWholesaleEnabled: productData.isWholesaleEnabled !== false,
+    isFeatured: Boolean(productData.isFeatured),
+    isBestSeller: Boolean(productData.isBestSeller),
     variants,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -283,9 +322,22 @@ export async function fsUpdateProduct(id: string, updates: any): Promise<{ succe
   if (!snap.exists()) return { success: false, error: 'Product not found' };
 
   const current = snap.data() as Product;
+  let resolvedCategoryId = current.categoryId;
+  if (updates.categoryId) {
+    const existingCats = await fsGetCategories();
+    const matchedCat = existingCats.find(
+      (c) =>
+        c.id === updates.categoryId ||
+        c.slug === updates.categoryId ||
+        c.name.trim().toLowerCase() === String(updates.categoryId).trim().toLowerCase()
+    );
+    resolvedCategoryId = matchedCat ? matchedCat.id : updates.categoryId;
+  }
+
   const merged = {
     ...current,
     ...updates,
+    categoryId: resolvedCategoryId,
     updatedAt: new Date().toISOString(),
   };
 
@@ -313,7 +365,7 @@ export async function fsGetOrders(userId?: string): Promise<Order[]> {
   }
 }
 
-export async function fsCreateOrder(orderInput: any): Promise<{ success: boolean; data?: { order: Order }; error?: string }> {
+export async function fsCreateOrder(orderInput: any): Promise<{ success: boolean; data?: { order: Order; paymentUrl?: string }; error?: string }> {
   await ensureFirestoreSeeded();
   if (!orderInput.customerName || !orderInput.customerPhone) {
     return { success: false, error: 'Customer name and phone number are required.' };
@@ -322,21 +374,73 @@ export async function fsCreateOrder(orderInput: any): Promise<{ success: boolean
     return { success: false, error: 'Cannot place an order with an empty cart.' };
   }
 
-  // Stock check and deduction
+  const settings = await fsGetSettings();
+  const isWholesaleStore = settings.featureFlags?.wholesalePricing !== false;
   const products = await fsGetProducts(true);
+
+  // Authoritative item calculation and stock verification
+  const itemSnapshots: OrderItemSnapshot[] = [];
+  let subtotal = 0;
+  let totalMrp = 0;
+
   for (const item of orderInput.items) {
+    if (item.quantity <= 0) {
+      return { success: false, error: 'Quantity must be >= 1' };
+    }
     const prod = products.find((p) => p.id === item.productId);
-    const variant = prod?.variants.find((v) => v.id === item.variantId);
+    if (!prod) {
+      return { success: false, error: `Product ${item.productId} not found` };
+    }
+    const variant = prod.variants.find((v) => v.id === item.variantId);
     if (!variant) {
-      return { success: false, error: `Variant "${item.variantName || item.title}" not found.` };
+      return { success: false, error: `Variant ${item.variantId} not found on product ${prod.title}` };
     }
     if (variant.stock < item.quantity) {
       return {
         success: false,
-        error: `Insufficient stock for "${prod?.title} (${variant.name})". Only ${variant.stock} units available.`,
+        error: `Insufficient stock for "${prod.title} (${variant.name})". Only ${variant.stock} units available.`,
       };
     }
+
+    const { unitPrice, appliedTier } = resolveUnitPrice(
+      variant,
+      item.quantity,
+      isWholesaleStore && prod.isWholesaleEnabled
+    );
+
+    const lineTotal = unitPrice * item.quantity;
+    const mrpTotal = (variant.mrp || variant.basePrice) * item.quantity;
+    const savings = Math.max(0, mrpTotal - lineTotal);
+
+    subtotal += lineTotal;
+    totalMrp += mrpTotal;
+
+    itemSnapshots.push({
+      productId: prod.id,
+      variantId: variant.id,
+      title: prod.title,
+      variantName: variant.name,
+      sku: variant.sku || 'SKU',
+      image: variant.images?.[0] || prod.images?.[0] || '',
+      quantity: item.quantity,
+      unitPrice,
+      basePrice: variant.basePrice,
+      mrp: variant.mrp || variant.basePrice,
+      lineTotal,
+      savings,
+      appliedTierLabel: appliedTier?.label,
+    });
   }
+
+  const isTakeaway = orderInput.fulfillmentMethod === 'takeaway';
+  const totalSavings = Math.max(0, totalMrp - subtotal);
+  const deliveryCharge = isTakeaway
+    ? 0
+    : subtotal >= (settings.freeDeliveryThreshold ?? 499) || subtotal === 0
+    ? 0
+    : (settings.deliveryCharge ?? 40);
+  const taxAmount = Math.round((subtotal * (settings.taxPercentage || 0)) / 100);
+  const finalTotal = subtotal + deliveryCharge;
 
   // Deduct stock in Firestore
   const batch = writeBatch(firestore);
@@ -351,56 +455,182 @@ export async function fsCreateOrder(orderInput: any): Promise<{ success: boolean
     batch.update(doc(firestore, 'products', prod.id), { variants: updatedVariants });
   }
 
-  const isTakeaway = orderInput.fulfillmentMethod === 'takeaway';
-  const effectiveDelivery = isTakeaway ? 0 : (orderInput.deliveryCharge ?? 40);
-  const subtotal = orderInput.subtotal || orderInput.items.reduce((s: number, i: any) => s + (i.lineTotal || (i.unitPrice * i.quantity)), 0);
-  const finalTotal = subtotal + effectiveDelivery;
+  // Synthesize normalized shippingAddress
+  const rawAddr = orderInput.shippingAddress || orderInput.deliveryAddress;
+  const shippingAddress: Address = {
+    id: rawAddr?.id || `addr-${Date.now()}`,
+    userId: orderInput.userId || 'guest_user',
+    fullName: rawAddr?.fullName || orderInput.customerName,
+    phone: rawAddr?.phone || orderInput.customerPhone,
+    line1: rawAddr?.line1 || rawAddr?.addressLine || (isTakeaway ? 'DailyMart Store Pickup Counter' : 'Home Address'),
+    line2: rawAddr?.line2 || '',
+    landmark: rawAddr?.landmark || '',
+    city: rawAddr?.city || 'Bengaluru',
+    state: rawAddr?.state || 'Karnataka',
+    pincode: rawAddr?.pincode || '560034',
+    addressType: rawAddr?.addressType || (isTakeaway ? 'other' : 'home'),
+    isDefault: rawAddr?.isDefault !== undefined ? rawAddr.isDefault : true,
+  };
 
   const orderNumber = `ORD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+  const orderId = `ord-${Date.now()}`;
+  const isCod = orderInput.paymentMethod === 'cod';
+
   const newOrder: Order = {
-    id: `ord-${Date.now()}`,
+    id: orderId,
     orderNumber,
     userId: orderInput.userId || 'guest_user',
     customerName: orderInput.customerName,
     customerPhone: orderInput.customerPhone,
     customerEmail: orderInput.customerEmail || '',
-    fulfillmentMethod: orderInput.fulfillmentMethod || 'home_delivery',
-    deliveryAddress: orderInput.deliveryAddress || {
-      addressLine: isTakeaway ? 'Store Pickup Counter' : 'Home Address',
-      city: 'Bengaluru',
-      pincode: '560034',
+    fulfillmentMethod: isTakeaway ? 'takeaway' : 'home_delivery',
+    shippingAddress,
+    deliveryAddress: {
+      addressLine: shippingAddress.line1,
+      city: shippingAddress.city,
+      pincode: shippingAddress.pincode,
     },
-    items: orderInput.items.map((i: any) => ({
-      productId: i.productId,
-      variantId: i.variantId,
-      title: i.title || i.productTitle,
-      variantName: i.variantName,
-      sku: i.sku || 'SKU',
-      image: i.image || '',
-      quantity: i.quantity,
-      unitPrice: i.unitPrice,
-      basePrice: i.basePrice || i.unitPrice,
-      mrp: i.mrp || i.unitPrice,
-      lineTotal: i.lineTotal || (i.unitPrice * i.quantity),
-      savings: i.savings || 0,
-      appliedTierLabel: i.appliedTierLabel,
-    })),
+    items: itemSnapshots,
     subtotal,
-    deliveryCharge: effectiveDelivery,
-    taxAmount: 0,
+    totalMrp,
+    totalSavings,
+    deliveryCharge,
+    taxAmount,
+    discountAmount: 0,
     finalTotal,
     paymentMethod: orderInput.paymentMethod || 'cod',
-    paymentStatus: orderInput.paymentMethod === 'cod' ? 'pending' : (orderInput.paymentStatus || 'pending'),
-    orderStatus: 'Placed',
+    paymentStatus: isCod ? 'pending' : 'initiated',
+    orderStatus: isCod ? 'Confirmed' : 'Placed',
     stockDeducted: true,
+    statusHistory: [
+      {
+        status: isCod ? 'Confirmed' : 'Placed',
+        timestamp: new Date().toISOString(),
+        note: isTakeaway ? 'Order placed for Store Pickup' : 'Order placed for Home Delivery',
+        updatedBy: orderInput.customerName,
+      },
+    ],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
+  let paymentUrl: string | undefined;
+  if (!isCod) {
+    const merchantTransactionId = `TXN_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    newOrder.paymentId = merchantTransactionId;
+    paymentUrl = `/payment/simulator?merchantTransactionId=${merchantTransactionId}&orderId=${newOrder.id}&amount=${finalTotal}`;
+  }
+
   batch.set(doc(firestore, 'orders', newOrder.id), newOrder);
   await batch.commit();
 
-  return { success: true, data: { order: newOrder } };
+  return { success: true, data: { order: newOrder, paymentUrl } };
+}
+
+export async function fsGetOrderById(idOrNumber: string): Promise<Order | null> {
+  await ensureFirestoreSeeded();
+  try {
+    const orders = await fsGetOrders();
+    const found = orders.find((o) => o.id === idOrNumber || o.orderNumber === idOrNumber);
+    return found || null;
+  } catch (err) {
+    console.error('fsGetOrderById error:', err);
+    return null;
+  }
+}
+
+export async function fsGetProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {
+  await ensureFirestoreSeeded();
+  try {
+    const prods = await fsGetProducts(true);
+    const found = prods.find((p) => p.id === idOrSlug || p.slug === idOrSlug);
+    return found || null;
+  } catch (err) {
+    console.error('fsGetProductByIdOrSlug error:', err);
+    return null;
+  }
+}
+
+export async function fsVerifyPayment(
+  merchantTransactionId: string,
+  status: 'successful' | 'failed' | 'cancelled',
+  phonepeTxnId?: string
+): Promise<{ success: boolean; data?: Order; error?: string }> {
+  await ensureFirestoreSeeded();
+  try {
+    const orders = await fsGetOrders();
+    let order = orders.find(
+      (o) => o.paymentId === merchantTransactionId || o.id === merchantTransactionId || o.orderNumber === merchantTransactionId
+    );
+    if (!order) {
+      // Find most recent pending/initiated order
+      order = orders.find((o) => o.paymentStatus === 'initiated' || o.paymentStatus === 'pending');
+    }
+    if (!order) {
+      return { success: false, error: `Order for transaction ${merchantTransactionId} not found` };
+    }
+    return await fsFinalizePayment(order.id, status, phonepeTxnId || merchantTransactionId);
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Payment verification failed' };
+  }
+}
+
+async function fsFinalizePayment(
+  orderId: string,
+  status: 'successful' | 'failed' | 'cancelled',
+  refId?: string
+): Promise<{ success: boolean; data?: Order; error?: string }> {
+  const ref = doc(firestore, 'orders', orderId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { success: false, error: 'Order not found' };
+
+  const order = snap.data() as Order;
+  order.paymentStatus = status;
+  order.updatedAt = new Date().toISOString();
+
+  if (status === 'successful') {
+    order.orderStatus = 'Confirmed';
+    order.statusHistory = order.statusHistory || [];
+    order.statusHistory.push({
+      status: 'Confirmed',
+      timestamp: new Date().toISOString(),
+      note: `Payment verified via gateway (Ref: ${refId || ''})`,
+      updatedBy: 'system_payment_webhook',
+    });
+  } else {
+    order.orderStatus = 'Cancelled';
+    order.statusHistory = order.statusHistory || [];
+    order.statusHistory.push({
+      status: 'Cancelled',
+      timestamp: new Date().toISOString(),
+      note: `Payment ${status} by user or gateway`,
+      updatedBy: 'system_payment_webhook',
+    });
+    // If payment cancelled/failed and stock was deducted, safely restore stock
+    if (order.stockDeducted) {
+      const products = await fsGetProducts(true);
+      const batch = writeBatch(firestore);
+      for (const item of order.items) {
+        const prod = products.find((p) => p.id === item.productId);
+        if (prod) {
+          const updatedVariants = prod.variants.map((v) => {
+            if (v.id === item.variantId) {
+              return { ...v, stock: v.stock + item.quantity };
+            }
+            return v;
+          });
+          batch.update(doc(firestore, 'products', prod.id), { variants: updatedVariants });
+        }
+      }
+      order.stockDeducted = false;
+      batch.update(ref, order as any);
+      await batch.commit();
+      return { success: true, data: order };
+    }
+  }
+
+  await updateDoc(ref, order as any);
+  return { success: true, data: order };
 }
 
 export async function fsUpdateOrderStatus(orderId: string, status: string, note?: string): Promise<{ success: boolean; data?: Order; error?: string }> {

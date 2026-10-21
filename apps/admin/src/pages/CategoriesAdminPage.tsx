@@ -62,7 +62,7 @@ export const CategoriesAdminPage: React.FC = () => {
     setEditingCategoryId(cat.id);
     setName(cat.name);
     setSlug(cat.slug);
-    setImageUrl(cat.image || '');
+    setImageUrl(cat.image || cat.imageUrl || '');
     setSortOrder(cat.sortOrder || 1);
     setSubcategories(cat.subcategories ? JSON.parse(JSON.stringify(cat.subcategories)) : []);
     setNewSubName('');
@@ -101,8 +101,10 @@ export const CategoriesAdminPage: React.FC = () => {
       name: name.trim(),
       slug: generatedSlug,
       image: imageUrl,
+      imageUrl: imageUrl,
       sortOrder: Number(sortOrder) || 1,
       isVisible: true,
+      isActive: true,
       subcategories,
     };
 
@@ -182,7 +184,7 @@ export const CategoriesAdminPage: React.FC = () => {
             <div>
               <div className="h-32 w-full rounded-2xl overflow-hidden bg-slate-100 mb-3 border border-slate-100">
                 <img
-                  src={cat.image || CATEGORY_PRESETS[0].image}
+                  src={cat.image || cat.imageUrl || CATEGORY_PRESETS[0].image}
                   alt={cat.name}
                   className="h-full w-full object-cover"
                 />

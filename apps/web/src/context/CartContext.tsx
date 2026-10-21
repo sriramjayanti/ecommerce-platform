@@ -91,6 +91,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           lineTotal,
           savings,
           appliedTierId: appliedTier?.id,
+          appliedTierLabel: appliedTier?.label,
+          pricingTiers: variant.pricingTiers || currentItem.pricingTiers || [],
+          isWholesaleEnabled: isWholesale,
         };
         return updated;
       } else {
@@ -112,6 +115,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           savings,
           maxStock: variant.stock,
           appliedTierId: appliedTier?.id,
+          appliedTierLabel: appliedTier?.label,
+          pricingTiers: variant.pricingTiers || [],
+          isWholesaleEnabled: isWholesale,
         };
 
         return [...prev, newItem];
@@ -128,11 +134,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setItems((prev) => {
+      const isStoreWholesale = settings.featureFlags.wholesalePricing;
       return prev.map((item) => {
         if (item.productId === productId && item.variantId === variantId) {
           const qty = Math.min(item.maxStock, quantity);
-          // Dummy variant reconstruction to run pricing engine
-          const dummyVariant: ProductVariant = {
+          const isItemWholesale = isStoreWholesale && item.isWholesaleEnabled !== false;
+
+          const variantForPricing: ProductVariant = {
             id: item.variantId,
             name: item.variantName,
             sku: '',
@@ -141,19 +149,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             basePrice: item.basePrice,
             stock: item.maxStock,
             lowStockThreshold: 5,
-            pricingTiers: [], // Resolved directly or via original tiers
+            pricingTiers: item.pricingTiers || [],
           };
 
-          // Re-fetch product tiers from memory/API or assume proportional reduction
-          const unitPrice = item.unitPrice; // Or recalculate
+          const { unitPrice, appliedTier } = resolveUnitPrice(variantForPricing, qty, isItemWholesale);
           const lineTotal = unitPrice * qty;
           const savings = Math.max(0, item.mrp * qty - lineTotal);
 
           return {
             ...item,
             quantity: qty,
+            unitPrice,
             lineTotal,
             savings,
+            appliedTierId: appliedTier?.id,
+            appliedTierLabel: appliedTier?.label,
           };
         }
         return item;

@@ -28,14 +28,37 @@ export const AccountPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    safeApiFetch<Order[]>('/api/orders')
+    if (!user) {
+      setUserOrders([]);
+      return;
+    }
+
+    setLoading(true);
+    const queryParam = user.id || user.phone || '';
+    safeApiFetch<Order[]>(`/api/orders?userId=${encodeURIComponent(queryParam)}`)
       .then((d) => {
         if (d.success && d.data) {
-          setUserOrders(d.data);
+          const userPhoneClean = user.phone ? user.phone.replace(/\D/g, '').slice(-10) : '';
+          const userEmailClean = user.email ? user.email.toLowerCase().trim() : '';
+
+          const filtered = d.data.filter((o: Order) => {
+            if (o.userId && o.userId === user.id) return true;
+            if (userPhoneClean && o.customerPhone && o.customerPhone.replace(/\D/g, '').slice(-10) === userPhoneClean) {
+              return true;
+            }
+            if (userEmailClean && o.customerEmail && o.customerEmail.toLowerCase().trim() === userEmailClean) {
+              return true;
+            }
+            return false;
+          });
+          setUserOrders(filtered);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [user]);
 
+  useEffect(() => {
     safeApiFetch<Product[]>('/api/products')
       .then((d) => {
         if (d.success && d.data) {

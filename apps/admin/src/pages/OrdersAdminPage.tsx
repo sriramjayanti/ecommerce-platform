@@ -69,6 +69,30 @@ export const OrdersAdminPage: React.FC = () => {
     return true;
   });
 
+  const getOrderAddress = (ord: Order) => {
+    if (ord.shippingAddress) {
+      return {
+        fullName: ord.shippingAddress.fullName || ord.customerName,
+        line1: ord.shippingAddress.line1,
+        line2: ord.shippingAddress.line2 || '',
+        city: ord.shippingAddress.city,
+        state: ord.shippingAddress.state,
+        pincode: ord.shippingAddress.pincode,
+        phone: ord.shippingAddress.phone || ord.customerPhone,
+      };
+    }
+    const da = ord.deliveryAddress;
+    return {
+      fullName: ord.customerName,
+      line1: da?.addressLine || (ord.fulfillmentMethod === 'takeaway' ? 'DailyMart Store Pickup Counter' : 'Home Address'),
+      line2: '',
+      city: da?.city || 'Bengaluru',
+      state: 'Karnataka',
+      pincode: da?.pincode || '560034',
+      phone: ord.customerPhone,
+    };
+  };
+
   const getNextStatus = (current: OrderStatus): OrderStatus | null => {
     const idx = ORDER_STATUS_STEPS.indexOf(current as any);
     if (idx >= 0 && idx < ORDER_STATUS_STEPS.length - 1) {
@@ -321,28 +345,32 @@ export const OrdersAdminPage: React.FC = () => {
             </div>
 
             {/* Delivery address & customer */}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-1">
-              <h4 className="font-bold text-slate-900 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>Customer & Fulfillment Details</span>
-                </span>
-                <span className="rounded-md bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                  {selectedOrder.fulfillmentMethod === 'takeaway' ? 'Store Pickup / Takeaway' : 'Home Delivery'}
-                </span>
-              </h4>
-              <p className="text-slate-800 font-medium">
-                {selectedOrder.shippingAddress.fullName} • Phone: {selectedOrder.customerPhone}
-              </p>
-              <p className="text-slate-600">
-                {selectedOrder.shippingAddress.line1}, {selectedOrder.shippingAddress.city},{' '}
-                {selectedOrder.shippingAddress.state} - {selectedOrder.shippingAddress.pincode}
-              </p>
-              <p className="text-[11px] text-slate-600 pt-1">
-                Payment: <span className="font-bold uppercase">{selectedOrder.paymentMethod}</span> ({selectedOrder.paymentStatus})
-                {selectedOrder.paymentId && ` • Ref: ${selectedOrder.paymentId}`}
-              </p>
-            </div>
+            {(() => {
+              const addr = getOrderAddress(selectedOrder);
+              return (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-1">
+                  <h4 className="font-bold text-slate-900 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-emerald-600" />
+                      <span>Customer & Fulfillment Details</span>
+                    </span>
+                    <span className="rounded-md bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                      {selectedOrder.fulfillmentMethod === 'takeaway' ? 'Store Pickup / Takeaway' : 'Home Delivery'}
+                    </span>
+                  </h4>
+                  <p className="text-slate-800 font-medium">
+                    {addr.fullName} • Phone: {selectedOrder.customerPhone}
+                  </p>
+                  <p className="text-slate-600">
+                    {addr.line1}, {addr.city}, {addr.state} - {addr.pincode}
+                  </p>
+                  <p className="text-[11px] text-slate-600 pt-1">
+                    Payment: <span className="font-bold uppercase">{selectedOrder.paymentMethod}</span> ({selectedOrder.paymentStatus})
+                    {selectedOrder.paymentId && ` • Ref: ${selectedOrder.paymentId}`}
+                  </p>
+                </div>
+              );
+            })()}
 
             {/* Bill Summary */}
             <div className="border-t border-slate-200 pt-3 space-y-1.5 text-slate-600">
@@ -439,14 +467,19 @@ export const OrdersAdminPage: React.FC = () => {
 
               {/* Bill to */}
               <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <div>
-                  <span className="font-bold text-slate-900 block text-[11px] uppercase">Billed To:</span>
-                  <p className="font-black text-slate-900">{invoiceOrder.customerName}</p>
-                  <p className="text-slate-600 leading-snug">
-                    {invoiceOrder.shippingAddress.line1}, {invoiceOrder.shippingAddress.city}, {invoiceOrder.shippingAddress.state} - {invoiceOrder.shippingAddress.pincode}
-                  </p>
-                  <p className="text-slate-600 font-medium">Phone: {invoiceOrder.customerPhone}</p>
-                </div>
+                {(() => {
+                  const addr = getOrderAddress(invoiceOrder);
+                  return (
+                    <div>
+                      <span className="font-bold text-slate-900 block text-[11px] uppercase">Billed To:</span>
+                      <p className="font-black text-slate-900">{invoiceOrder.customerName}</p>
+                      <p className="text-slate-600 leading-snug">
+                        {addr.line1}, {addr.city}, {addr.state} - {addr.pincode}
+                      </p>
+                      <p className="text-slate-600 font-medium">Phone: {invoiceOrder.customerPhone}</p>
+                    </div>
+                  );
+                })()}
                 <div className="text-right">
                   <span className="font-bold text-slate-900 block text-[11px] uppercase">Payment Info:</span>
                   <p className="font-bold text-slate-800 uppercase">{invoiceOrder.paymentMethod} Payment</p>
