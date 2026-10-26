@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Order, ORDER_STATUS_STEPS, OrderStatus } from '@ecommerce/shared';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Order, ORDER_STATUS_STEPS, OrderStatus, dataStore } from '@ecommerce/shared';
 import {
   CheckCircle2,
   Clock,
@@ -17,25 +17,38 @@ import {
   HelpCircle,
   RotateCcw,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
 
 export const OrderTrackingPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [whatsappUrl, setWhatsappUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/orders/${orderId}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) {
-          setOrder(d.data);
-          setWhatsappUrl(d.whatsappSupportUrl || '');
-        }
-      })
-      .finally(() => setLoading(false));
+    if (!orderId) {
+      setLoading(false);
+      return;
+    }
+
+    const loadOrder = async () => {
+      const found = await dataStore.getOrderById(orderId);
+      if (found) {
+        setOrder(found);
+      }
+      setLoading(false);
+    };
+
+    loadOrder();
+
+    const unsub = dataStore.subscribe(() => {
+      loadOrder();
+    });
+
+    return () => unsub();
   }, [orderId]);
 
   if (loading) {
@@ -71,6 +84,24 @@ export const OrderTrackingPage: React.FC = () => {
     <div className="min-h-screen bg-[#eaeded]/50 py-8">
       <div className="mx-auto max-w-6xl px-4 space-y-6">
         
+        {/* Simple Back Navigation Bar */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-100 border border-slate-200 transition"
+          >
+            <ArrowLeft className="h-4 w-4 text-emerald-600" />
+            <span>← Back to Store Home</span>
+          </button>
+          <Link
+            to="/account"
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline"
+          >
+            View All My Orders
+          </Link>
+        </div>
+
         {/* Top Success Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs">
           <div className="flex items-center gap-4">

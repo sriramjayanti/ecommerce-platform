@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Product, Category, INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '@ecommerce/shared';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Product, Category, INITIAL_PRODUCTS, INITIAL_CATEGORIES, dataStore } from '@ecommerce/shared';
 import { ProductCard } from '../components/ProductCard';
 import {
   Filter,
@@ -10,10 +10,12 @@ import {
   Zap,
   Star,
   Check,
+  ArrowLeft,
 } from 'lucide-react';
 
 export const CategoryPage: React.FC = () => {
   const { categorySlug } = useParams<{ categorySlug: string }>();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const initialCat = INITIAL_CATEGORIES.find(
@@ -28,27 +30,25 @@ export const CategoryPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    const found = INITIAL_CATEGORIES.find(
-      (c) => c.slug === categorySlug || c.id === categorySlug
-    );
-    if (found) setCurrentCategory(found);
+    const loadData = async () => {
+      const [prods, cats] = await Promise.all([
+        dataStore.getProducts(),
+        dataStore.getCategories(),
+      ]);
+      setProducts(prods);
+      setCategories(cats);
+      const f = cats.find((c: Category) => c.slug === categorySlug || c.id === categorySlug);
+      if (f) setCurrentCategory(f);
+      setLoading(false);
+    };
 
-    Promise.all([
-      fetch('/api/products').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-      fetch('/api/categories').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-    ])
-      .then(([pRes, cRes]) => {
-        if (pRes.success && pRes.data?.length) setProducts(pRes.data);
-        if (cRes.success && cRes.data?.length) {
-          setCategories(cRes.data);
-          const f = cRes.data.find(
-            (c: Category) => c.slug === categorySlug || c.id === categorySlug
-          );
-          if (f) setCurrentCategory(f);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    loadData();
+
+    const unsub = dataStore.subscribe(() => {
+      loadData();
+    });
+
+    return () => unsub();
   }, [categorySlug]);
 
   const filteredProducts = products.filter((p) => {
@@ -83,6 +83,21 @@ export const CategoryPage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 py-6 font-sans">
       <div className="max-w-7xl mx-auto px-4 space-y-6">
         
+        {/* Simple Back Navigation Bar */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-100 border border-slate-200 transition"
+          >
+            <ArrowLeft className="h-4 w-4 text-emerald-600" />
+            <span>← Back to Categories / Store</span>
+          </button>
+          <span className="text-xs text-slate-500 font-medium">
+            {filteredProducts.length} Products in {currentCategory?.name || 'Department'}
+          </span>
+        </div>
+
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
           <Link to="/" className="hover:text-amber-600">Home</Link>

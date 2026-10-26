@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { Address } from '@ecommerce/shared';
+import { Address, dataStore } from '@ecommerce/shared';
 import {
   ShieldCheck,
   CreditCard,
@@ -10,6 +10,7 @@ import {
   MapPin,
   Plus,
   ArrowRight,
+  ArrowLeft,
   ShoppingBag,
   Zap,
   CheckCircle2,
@@ -19,6 +20,10 @@ import {
   Sparkles,
   ChevronRight,
   Radio,
+  QrCode,
+  Smartphone,
+  Building,
+  Store,
 } from 'lucide-react';
 
 export const CheckoutPage: React.FC = () => {
@@ -31,9 +36,24 @@ export const CheckoutPage: React.FC = () => {
     defaultAddress?.id || (addresses[0]?.id ?? '')
   );
   const [isAddingNewAddress, setIsAddingNewAddress] = useState(addresses.length === 0);
+  const [fulfilmentMethod, setFulfilmentMethod] = useState<'delivery' | 'takeaway'>('delivery');
   const [deliverySpeed, setDeliverySpeed] = useState<'express' | 'standard'>('express');
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
-  const [onlineSubMethod, setOnlineSubMethod] = useState<'phonepe_upi' | 'card' | 'netbanking'>('phonepe_upi');
+  
+  // Payment methods: 'upi' | 'card' | 'netbanking' | 'cod'
+  const [paymentType, setPaymentType] = useState<'upi' | 'card' | 'netbanking' | 'cod'>('upi');
+  const [upiMethod, setUpiMethod] = useState<'qr' | 'id'>('qr');
+  const [upiId, setUpiId] = useState('9812345678@paytm');
+  const [selectedUpiApp, setSelectedUpiApp] = useState<'gpay' | 'phonepe' | 'paytm' | 'bhim'>('phonepe');
+  
+  // Card details
+  const [cardNumber, setCardNumber] = useState('4532 •••• •••• 8821');
+  const [cardExpiry, setCardExpiry] = useState('08/29');
+  const [cardCvv, setCardCvv] = useState('834');
+  const [cardName, setCardName] = useState(user?.displayName || 'Rahul Sharma');
+  
+  // Netbanking
+  const [selectedBank, setSelectedBank] = useState('HDFC Bank');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -64,10 +84,10 @@ export const CheckoutPage: React.FC = () => {
         <p className="mt-2 text-sm text-slate-500">Explore our mega catalog and add products before proceeding.</p>
         <Link
           to="/"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg hover:from-blue-700 hover:to-indigo-700 transition"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 text-sm font-bold text-white shadow-lg hover:from-emerald-700 hover:to-teal-700 transition"
         >
+          <ArrowLeft className="h-4 w-4" />
           <span>Continue Shopping</span>
-          <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     );
@@ -109,42 +129,43 @@ export const CheckoutPage: React.FC = () => {
         shippingAddress = found;
       }
 
-      // Call authoritative backend API to place order
+      // Authoritative order placement using unified data store
       const payload = {
         userId: user?.id || `guest-${phone}`,
         customerName: shippingAddress.fullName,
         customerPhone: shippingAddress.phone,
         customerEmail: user?.email || `${phone}@guest.shop`,
+        fulfilmentMethod,
         items: items.map((i) => ({
           productId: i.productId,
           variantId: i.variantId,
           quantity: i.quantity,
         })),
-        shippingAddress,
-        paymentMethod,
+        shippingAddress: fulfilmentMethod === 'takeaway' ? {
+          ...shippingAddress,
+          line1: 'Store Pickup / Takeaway Hub (Gate #4)',
+          line2: 'DailyFresh Mart Central Wholesale Warehouse',
+          city: 'Wholesale Hub',
+        } : shippingAddress,
+        paymentMethod: paymentType as any,
+        paymentDetails: {
+          method: paymentType,
+          upiId: paymentType === 'upi' ? upiId : undefined,
+          bank: paymentType === 'netbanking' ? selectedBank : undefined,
+          cardLast4: paymentType === 'card' ? cardNumber.slice(-4) : undefined,
+        },
       };
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const result = await dataStore.placeOrder(payload as any);
 
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to place order');
+      if (!result.success || !result.data?.order) {
+        throw new Error(result.error || 'Failed to place order. Please try again.');
       }
 
       clearCart();
 
-      if (paymentMethod === 'online' && result.data.paymentUrl) {
-        // Redirect to PhonePe payment simulation/gateway
-        window.location.href = result.data.paymentUrl;
-      } else {
-        // COD order confirmed
-        navigate(`/order/${result.data.order.orderNumber}`);
-      }
+      // Navigate to order confirmation / tracking page
+      navigate(`/order/${result.data.order.orderNumber}`);
     } catch (err: any) {
       setErrorMessage(err.message || 'An error occurred during checkout. Please try again.');
     } finally {
@@ -158,6 +179,25 @@ export const CheckoutPage: React.FC = () => {
     <div className="min-h-screen bg-[#eaeded]/60 py-8">
       <div className="mx-auto max-w-7xl px-4">
         
+        {/* Simple Back Navigation Bar */}
+        <div className="mb-4 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 border border-slate-200 transition"
+          >
+            <ArrowLeft className="h-4 w-4 text-emerald-600" />
+            <span>← Back to Shopping</span>
+          </button>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <span>Cart</span>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-emerald-700 font-bold">Secure Checkout</span>
+            <ChevronRight className="h-3 w-3" />
+            <span>Order Confirmation</span>
+          </div>
+        </div>
+
         {/* Checkout Top Security Bar */}
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center gap-3">
@@ -319,148 +359,139 @@ export const CheckoutPage: React.FC = () => {
               </div>
             </div>
 
-            {/* STEP 2: Delivery Speed & Slot */}
+            {/* STEP 2: Fulfilment Method & Delivery Speed */}
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
               <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-6 py-4">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#131921] text-xs font-black text-white">
                   2
                 </span>
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
-                  Delivery Option & Speed
-                </h2>
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                    Fulfilment Method & Delivery Speed
+                  </h2>
+                  <p className="text-[11px] text-slate-500">Choose between Doorstep Delivery or Warehouse Hub Pickup (Takeaway)</p>
+                </div>
               </div>
 
-              <div className="p-6 space-y-3">
-                <label
-                  className={`flex items-start justify-between rounded-xl border p-4 cursor-pointer transition ${
-                    deliverySpeed === 'express'
-                      ? 'border-emerald-600 bg-emerald-50/40 ring-1 ring-emerald-500'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="deliverySpeed"
-                      checked={deliverySpeed === 'express'}
-                      onChange={() => setDeliverySpeed('express')}
-                      className="mt-1 text-emerald-600"
-                    />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-extrabold text-slate-900">
-                          Express Assured Priority Delivery
-                        </span>
-                        <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                          ⚡ 2-Hour Window
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-1">
-                        Dispatched immediately via verified local delivery partner hub.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-extrabold text-emerald-700">FREE</span>
-                </label>
+              <div className="p-6 space-y-4">
+                {/* Method Tabs */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFulfilmentMethod('delivery')}
+                    className={`flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold transition border ${
+                      fulfilmentMethod === 'delivery'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Truck className="h-4 w-4 text-emerald-600" />
+                    <span>🚚 Home Delivery</span>
+                  </button>
 
-                <label
-                  className={`flex items-start justify-between rounded-xl border p-4 cursor-pointer transition ${
-                    deliverySpeed === 'standard'
-                      ? 'border-emerald-600 bg-emerald-50/40 ring-1 ring-emerald-500'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="deliverySpeed"
-                      checked={deliverySpeed === 'standard'}
-                      onChange={() => setDeliverySpeed('standard')}
-                      className="mt-1 text-emerald-600"
-                    />
-                    <div>
-                      <span className="text-xs font-extrabold text-slate-900">Standard Next-Day Delivery</span>
-                      <p className="text-[11px] text-slate-500 mt-1">
-                        Delivered tomorrow between 9:00 AM – 2:00 PM.
-                      </p>
-                    </div>
+                  <button
+                    type="button"
+                    onClick={() => setFulfilmentMethod('takeaway')}
+                    className={`flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold transition border ${
+                      fulfilmentMethod === 'takeaway'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Store className="h-4 w-4 text-emerald-600" />
+                    <span>🏬 Store Pickup / Takeaway</span>
+                  </button>
+                </div>
+
+                {fulfilmentMethod === 'takeaway' ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-xs space-y-1">
+                    <span className="font-bold text-emerald-900 block">Pickup Hub: DailyFresh Mart Wholesale Center</span>
+                    <p className="text-slate-600">APMC Wholesale Market Yard, Sector 19, Warehouse Gate #4</p>
+                    <p className="text-[11px] text-emerald-700 font-bold">✓ Ready for pickup in 45 minutes • ₹0 Delivery Fee</p>
                   </div>
-                  <span className="text-xs font-extrabold text-emerald-700">FREE</span>
-                </label>
+                ) : (
+                  <div className="space-y-3">
+                    <label
+                      className={`flex items-start justify-between rounded-xl border p-4 cursor-pointer transition ${
+                        deliverySpeed === 'express'
+                          ? 'border-emerald-600 bg-emerald-50/40 ring-1 ring-emerald-500'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="deliverySpeed"
+                          checked={deliverySpeed === 'express'}
+                          onChange={() => setDeliverySpeed('express')}
+                          className="mt-1 text-emerald-600"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-extrabold text-slate-900">
+                              Express Assured Priority Delivery
+                            </span>
+                            <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                              ⚡ 2-Hour Window
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            Dispatched immediately via verified local delivery partner hub.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-extrabold text-emerald-700">FREE</span>
+                    </label>
+
+                    <label
+                      className={`flex items-start justify-between rounded-xl border p-4 cursor-pointer transition ${
+                        deliverySpeed === 'standard'
+                          ? 'border-emerald-600 bg-emerald-50/40 ring-1 ring-emerald-500'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="deliverySpeed"
+                          checked={deliverySpeed === 'standard'}
+                          onChange={() => setDeliverySpeed('standard')}
+                          className="mt-1 text-emerald-600"
+                        />
+                        <div>
+                          <span className="text-xs font-extrabold text-slate-900">Standard Next-Day Delivery</span>
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            Delivered tomorrow between 9:00 AM – 2:00 PM.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-extrabold text-emerald-700">FREE</span>
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* STEP 3: Payment Method */}
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
               <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-6 py-4">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#131921] text-xs font-black text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">
                   3
                 </span>
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
-                  Select Payment Method
-                </h2>
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                    Select Payment Method
+                  </h2>
+                  <p className="text-[11px] text-slate-500">Choose your preferred payment method: UPI, Credit/Debit Card, Net Banking, or Cash on Delivery</p>
+                </div>
               </div>
 
               <div className="p-6 space-y-4">
-                {/* PhonePe / UPI Online Option */}
-                {settings.featureFlags.onlinePayment && (
-                  <div
-                    className={`rounded-xl border p-4 transition ${
-                      paymentMethod === 'online'
-                        ? 'border-purple-600 bg-purple-50/30 ring-1 ring-purple-500'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <label className="flex items-start justify-between cursor-pointer">
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="radio"
-                          name="payMethod"
-                          checked={paymentMethod === 'online'}
-                          onChange={() => setPaymentMethod('online')}
-                          className="mt-1 text-purple-600"
-                        />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-extrabold text-slate-900">
-                              PhonePe Secure Online Payment (UPI, Cards, NetBanking)
-                            </span>
-                            <span className="rounded bg-purple-100 px-2 py-0.5 text-[10px] font-extrabold text-purple-800">
-                              Recommended
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 mt-1">
-                            Pay directly via PhonePe UPI QR, Google Pay, Paytm, Credit/Debit Cards, or NetBanking.
-                          </p>
-                        </div>
-                      </div>
-                      <CreditCard className="h-5 w-5 text-purple-600 flex-shrink-0" />
-                    </label>
-
-                    {paymentMethod === 'online' && (
-                      <div className="mt-4 pt-4 border-t border-purple-100 grid grid-cols-3 gap-2 text-center text-xs">
-                        <div className="rounded-lg bg-white p-2.5 border border-purple-200 shadow-2xs font-bold text-slate-800">
-                          <p className="text-purple-700 font-black">UPI / PhonePe</p>
-                          <span className="text-[10px] text-slate-400">Instant QR</span>
-                        </div>
-                        <div className="rounded-lg bg-white p-2.5 border border-slate-200 shadow-2xs font-semibold text-slate-700">
-                          <p>Credit / Debit</p>
-                          <span className="text-[10px] text-slate-400">Visa, RuPay, MC</span>
-                        </div>
-                        <div className="rounded-lg bg-white p-2.5 border border-slate-200 shadow-2xs font-semibold text-slate-700">
-                          <p>NetBanking</p>
-                          <span className="text-[10px] text-slate-400">50+ Banks</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Cash on Delivery */}
+                {/* 1. UPI Option */}
                 <div
-                  className={`rounded-xl border p-4 transition ${
-                    paymentMethod === 'cod'
-                      ? 'border-blue-600 bg-blue-50/30 ring-1 ring-blue-500'
+                  className={`rounded-2xl border p-4 transition ${
+                    paymentType === 'upi'
+                      ? 'border-emerald-600 bg-emerald-50/30 ring-1 ring-emerald-500'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
@@ -468,15 +499,259 @@ export const CheckoutPage: React.FC = () => {
                     <div className="flex items-start gap-3">
                       <input
                         type="radio"
-                        name="payMethod"
-                        checked={paymentMethod === 'cod'}
-                        onChange={() => setPaymentMethod('cod')}
-                        className="mt-1 text-blue-600"
+                        name="paymentType"
+                        checked={paymentType === 'upi'}
+                        onChange={() => setPaymentType('upi')}
+                        className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-extrabold text-slate-900">
+                            UPI (Google Pay, PhonePe, Paytm, QR Code)
+                          </span>
+                          <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                            Fastest • ₹0 Fee
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Instant verification via any UPI App or QR code scanner.
+                        </p>
+                      </div>
+                    </div>
+                    <Smartphone className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                  </label>
+
+                  {paymentType === 'upi' && (
+                    <div className="mt-4 pt-4 border-t border-emerald-100 space-y-3">
+                      {/* UPI Mode Tabs */}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setUpiMethod('qr')}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition border ${
+                            upiMethod === 'qr'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <QrCode className="h-3.5 w-3.5" />
+                          <span>Scan UPI QR Code</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUpiMethod('id')}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition border ${
+                            upiMethod === 'id'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Smartphone className="h-3.5 w-3.5" />
+                          <span>Enter UPI ID / VPA</span>
+                        </button>
+                      </div>
+
+                      {upiMethod === 'qr' ? (
+                        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-xl border border-emerald-200">
+                          <div className="h-28 w-28 bg-slate-900 p-2 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-inner">
+                            <QrCode className="h-24 w-24 text-emerald-400" />
+                          </div>
+                          <div className="space-y-1 text-center sm:text-left">
+                            <span className="text-xs font-black text-slate-900">Scan & Pay ₹{totals.finalTotal}</span>
+                            <p className="text-[11px] text-slate-500">
+                              Use PhonePe, Google Pay, Paytm or any BHIM UPI app to scan and pay instantly.
+                            </p>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              <CheckCircle2 className="h-3 w-3" /> Auto-detects payment on submit
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 bg-white p-3.5 rounded-xl border border-emerald-200">
+                          <label className="block text-xs font-bold text-slate-700">Enter your UPI ID / Mobile</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={upiId}
+                              onChange={(e) => setUpiId(e.target.value)}
+                              placeholder="9876543210@paytm or user@okhdfcbank"
+                              className="flex-1 rounded-xl border border-slate-300 p-2 text-xs font-mono font-bold outline-none focus:border-emerald-500"
+                            />
+                            <span className="flex items-center text-xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 rounded-xl">
+                              Verified
+                            </span>
+                          </div>
+                          <div className="flex gap-1.5 pt-1">
+                            {['@paytm', '@ybl', '@okhdfcbank', '@okaxis'].map((handle) => (
+                              <button
+                                key={handle}
+                                type="button"
+                                onClick={() => setUpiId((prev) => (prev.split('@')[0] || 'user') + handle)}
+                                className="text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 px-2 py-1 rounded-lg transition"
+                              >
+                                {handle}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Credit / Debit Card Option */}
+                <div
+                  className={`rounded-2xl border p-4 transition ${
+                    paymentType === 'card'
+                      ? 'border-emerald-600 bg-emerald-50/30 ring-1 ring-emerald-500'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <label className="flex items-start justify-between cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        checked={paymentType === 'card'}
+                        onChange={() => setPaymentType('card')}
+                        className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-extrabold text-slate-900">
+                            Credit / Debit Cards
+                          </span>
+                          <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-extrabold text-blue-800">
+                            Visa, MasterCard, RuPay
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Bank-grade 256-bit encryption. All Indian & International cards accepted.
+                        </p>
+                      </div>
+                    </div>
+                    <CreditCard className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  </label>
+
+                  {paymentType === 'card' && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Card Number</label>
+                        <input
+                          type="text"
+                          value={cardNumber}
+                          onChange={(e) => setCardNumber(e.target.value)}
+                          placeholder="4532 0000 0000 0000"
+                          maxLength={19}
+                          className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-mono font-bold outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Expiry (MM/YY)</label>
+                          <input
+                            type="text"
+                            value={cardExpiry}
+                            onChange={(e) => setCardExpiry(e.target.value)}
+                            placeholder="MM/YY"
+                            maxLength={5}
+                            className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-mono font-bold outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">CVV</label>
+                          <input
+                            type="password"
+                            value={cardCvv}
+                            onChange={(e) => setCardCvv(e.target.value)}
+                            placeholder="•••"
+                            maxLength={4}
+                            className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-mono font-bold outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Cardholder Name</label>
+                        <input
+                          type="text"
+                          value={cardName}
+                          onChange={(e) => setCardName(e.target.value)}
+                          placeholder="Name as printed on card"
+                          className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-bold outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Net Banking */}
+                <div
+                  className={`rounded-2xl border p-4 transition ${
+                    paymentType === 'netbanking'
+                      ? 'border-emerald-600 bg-emerald-50/30 ring-1 ring-emerald-500'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <label className="flex items-start justify-between cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        checked={paymentType === 'netbanking'}
+                        onChange={() => setPaymentType('netbanking')}
+                        className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div>
+                        <span className="text-xs font-extrabold text-slate-900">Net Banking</span>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          All major banks supported (HDFC, SBI, ICICI, Axis, Kotak, PNB).
+                        </p>
+                      </div>
+                    </div>
+                    <Building className="h-5 w-5 text-indigo-600 flex-shrink-0" />
+                  </label>
+
+                  {paymentType === 'netbanking' && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-3 gap-2">
+                      {['HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Axis Bank', 'Kotak Bank', 'Punjab National Bank'].map((bank) => (
+                        <button
+                          key={bank}
+                          type="button"
+                          onClick={() => setSelectedBank(bank)}
+                          className={`p-2.5 rounded-xl border text-center text-xs font-bold transition ${
+                            selectedBank === bank
+                              ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-500'
+                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          {bank}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Cash on Delivery */}
+                <div
+                  className={`rounded-2xl border p-4 transition ${
+                    paymentType === 'cod'
+                      ? 'border-emerald-600 bg-emerald-50/30 ring-1 ring-emerald-500'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <label className="flex items-start justify-between cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        checked={paymentType === 'cod'}
+                        onChange={() => setPaymentType('cod')}
+                        className="mt-1 text-emerald-600 focus:ring-emerald-500"
                       />
                       <div>
                         <span className="text-xs font-extrabold text-slate-900">Cash on Delivery (COD)</span>
-                        <p className="text-[11px] text-slate-500 mt-1">
-                          Pay cash or scan courier UPI QR at your doorstep upon order arrival.
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Pay cash or scan courier UPI QR at your doorstep upon order delivery.
                         </p>
                       </div>
                     </div>
@@ -528,6 +803,16 @@ export const CheckoutPage: React.FC = () => {
                 </div>
               )}
 
+              {/* Selected Preferences Badges */}
+              <div className="py-2.5 border-t border-slate-100 flex flex-wrap gap-2 text-[11px]">
+                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 font-bold text-emerald-800">
+                  {fulfilmentMethod === 'delivery' ? '🚚 Home Delivery' : '🏬 Store Takeaway'}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-0.5 font-bold text-blue-800 uppercase">
+                  {paymentType === 'cod' ? 'Cash on Delivery' : paymentType}
+                </span>
+              </div>
+
               {/* Price Details */}
               <div className="space-y-2.5 text-xs text-slate-600 border-t border-slate-100 pt-4">
                 <div className="flex justify-between">
@@ -541,7 +826,7 @@ export const CheckoutPage: React.FC = () => {
                 <div className="flex justify-between">
                   <span>Delivery Charges</span>
                   <span>
-                    {totals.deliveryCharge === 0 ? (
+                    {fulfilmentMethod === 'takeaway' || totals.deliveryCharge === 0 ? (
                       <span className="font-bold text-emerald-700">FREE</span>
                     ) : (
                       `₹${totals.deliveryCharge}`
@@ -555,7 +840,9 @@ export const CheckoutPage: React.FC = () => {
 
                 <div className="flex justify-between border-t border-slate-200 pt-3 text-base font-black text-slate-900">
                   <span>Total Payable</span>
-                  <span className="text-blue-700 text-lg">₹{totals.finalTotal}</span>
+                  <span className="text-blue-700 text-lg">
+                    ₹{fulfilmentMethod === 'takeaway' ? totals.finalTotal - totals.deliveryCharge : totals.finalTotal}
+                  </span>
                 </div>
               </div>
 
@@ -570,7 +857,7 @@ export const CheckoutPage: React.FC = () => {
                 ) : (
                   <>
                     <span>
-                      {paymentMethod === 'online' ? 'Proceed to PhonePe Payment' : 'Confirm Order via COD'}
+                      {paymentType !== 'cod' ? 'Proceed to Secure Payment' : 'Confirm Order via COD'}
                     </span>
                     <ArrowRight className="h-4 w-4" />
                   </>

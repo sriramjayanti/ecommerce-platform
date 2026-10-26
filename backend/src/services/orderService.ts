@@ -18,7 +18,8 @@ export interface CreateOrderInput {
   customerEmail?: string;
   items: { productId: string; variantId: string; quantity: number }[];
   shippingAddress: Address;
-  paymentMethod: 'online' | 'cod';
+  paymentMethod: 'online' | 'cod' | 'upi' | 'card' | 'netbanking' | string;
+  fulfilmentMethod?: 'delivery' | 'takeaway';
 }
 
 export class OrderService {
@@ -132,20 +133,31 @@ export class OrderService {
       subtotal: calc.subtotal,
       totalMrp: calc.totalMrp,
       totalSavings: calc.totalSavings,
-      deliveryCharge: calc.deliveryCharge,
+      deliveryCharge: input.fulfilmentMethod === 'takeaway' ? 0 : calc.deliveryCharge,
       taxAmount: calc.taxAmount,
       discountAmount: 0,
-      finalTotal: calc.finalTotal,
+      finalTotal: calc.subtotal + (input.fulfilmentMethod === 'takeaway' ? 0 : calc.deliveryCharge),
       paymentMethod: input.paymentMethod,
-      paymentStatus: input.paymentMethod === 'cod' ? 'pending' : 'initiated',
-      orderStatus: 'Placed',
+      paymentStatus: input.paymentMethod === 'cod' ? 'pending' : (input.paymentMethod === 'online' ? 'initiated' : 'successful'),
+      fulfilmentMethod: input.fulfilmentMethod || 'delivery',
+      orderStatus: input.paymentMethod === 'cod' ? 'Placed' : (input.paymentMethod === 'online' ? 'Placed' : 'Confirmed'),
       statusHistory: [
         {
           status: 'Placed',
           timestamp: new Date().toISOString(),
-          note: 'Order placed by customer',
+          note: `Order placed by customer via ${input.paymentMethod.toUpperCase()}`,
           updatedBy: input.customerName,
         },
+        ...(input.paymentMethod !== 'cod' && input.paymentMethod !== 'online'
+          ? [
+              {
+                status: 'Confirmed' as OrderStatus,
+                timestamp: new Date().toISOString(),
+                note: `Payment verified instantly via ${input.paymentMethod.toUpperCase()}`,
+                updatedBy: 'system',
+              },
+            ]
+          : []),
       ],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -163,11 +175,11 @@ export class OrderService {
       order.paymentId = paymentRecord.id;
       return { order, paymentUrl: redirectUrl, paymentRecord };
     } else {
-      // COD: Deduct stock immediately
+      // Deduct stock immediately
       await InventoryService.deductStockForOrder(
         input.items,
         order.orderNumber,
-        'cod_order_placement'
+        input.paymentMethod === 'cod' ? 'cod_order_placement' : 'direct_online_order'
       );
       return { order };
     }

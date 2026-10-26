@@ -191,9 +191,10 @@ export interface Order {
   taxAmount: number;
   discountAmount: number;
   finalTotal: number;
-  paymentMethod: 'online' | 'cod';
+  paymentMethod: 'online' | 'cod' | 'upi' | 'card' | 'netbanking' | string;
   paymentStatus: PaymentStatus;
   paymentId?: string;
+  fulfilmentMethod?: 'delivery' | 'takeaway';
   orderStatus: OrderStatus;
   statusHistory: OrderStatusHistoryItem[];
   staffNotes?: string[];

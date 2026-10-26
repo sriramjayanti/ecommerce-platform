@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Product, Category, Banner, INITIAL_PRODUCTS, INITIAL_CATEGORIES, INITIAL_BANNERS } from '@ecommerce/shared';
+import { Product, Category, Banner, INITIAL_PRODUCTS, INITIAL_CATEGORIES, INITIAL_BANNERS, dataStore } from '@ecommerce/shared';
 import { CategoryPillsBar } from '../components/CategoryPillsBar';
 import { HeroDealsCarousel } from '../components/HeroDealsCarousel';
 import { BankOffersBar } from '../components/BankOffersBar';
@@ -37,17 +37,24 @@ export const HomePage: React.FC = () => {
   const { settings } = useCart();
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/products').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-      fetch('/api/categories').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-      fetch('/api/banners').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-    ])
-      .then(([prodRes, catRes, banRes]) => {
-        if (prodRes.success && prodRes.data?.length) setProducts(prodRes.data);
-        if (catRes.success && catRes.data?.length) setCategories(catRes.data);
-        if (banRes.success && banRes.data?.length) setBanners(banRes.data);
-      })
-      .catch(() => {});
+    const loadCatalog = async () => {
+      const [prods, cats, bans] = await Promise.all([
+        dataStore.getProducts(),
+        dataStore.getCategories(),
+        dataStore.getBanners(),
+      ]);
+      setProducts(prods);
+      setCategories(cats);
+      setBanners(bans);
+    };
+
+    loadCatalog();
+
+    const unsub = dataStore.subscribe(() => {
+      loadCatalog();
+    });
+
+    return () => unsub();
   }, []);
 
   useEffect(() => {

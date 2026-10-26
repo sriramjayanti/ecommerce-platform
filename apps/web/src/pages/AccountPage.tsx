@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { Order, Product } from '@ecommerce/shared';
+import { Order, Product, dataStore } from '@ecommerce/shared';
 import { ProductCard } from '../components/ProductCard';
 import {
   User,
@@ -16,40 +16,54 @@ import {
   CheckCircle2,
   Trash2,
   Plus,
+  ArrowLeft,
 } from 'lucide-react';
 
 export const AccountPage: React.FC = () => {
   const { user, logout, addresses, deleteAddress, setDefaultAddress } = useAuth();
   const { wishlistIds, items } = useCart();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'wishlist'>('orders');
   const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [wishlistProducts, setWishlistProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/orders')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) {
-          // If user exists, filter or show all recent for demo
-          setUserOrders(d.data);
-        }
-      });
+    const loadAccountData = async () => {
+      const [allOrders, allProds] = await Promise.all([
+        dataStore.getOrders(),
+        dataStore.getProducts(),
+      ]);
+      setUserOrders(allOrders);
+      setWishlistProducts(allProds.filter((p) => wishlistIds.includes(p.id)));
+    };
 
-    fetch('/api/products')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) {
-          const list = d.data.filter((p: Product) => wishlistIds.includes(p.id));
-          setWishlistProducts(list);
-        }
-      });
+    loadAccountData();
+
+    const unsub = dataStore.subscribe(() => {
+      loadAccountData();
+    });
+
+    return () => unsub();
   }, [wishlistIds]);
 
   return (
     <div className="min-h-screen bg-slate-50 py-10">
       <div className="max-w-6xl mx-auto px-4">
         
+        {/* Simple Back Navigation Bar */}
+        <div className="mb-6 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-100 border border-slate-200 transition"
+          >
+            <ArrowLeft className="h-4 w-4 text-emerald-600" />
+            <span>← Back to Shopping</span>
+          </button>
+          <span className="text-xs text-slate-500 font-medium">Customer Dashboard</span>
+        </div>
+
         {/* Profile Banner */}
         <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">

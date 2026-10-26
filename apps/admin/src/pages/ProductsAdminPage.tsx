@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Product, ProductVariant, PriceTier, Category, validatePriceTiers } from '@ecommerce/shared';
+import { useNavigate } from 'react-router-dom';
+import { Product, ProductVariant, PriceTier, Category, validatePriceTiers, dataStore } from '@ecommerce/shared';
 import { CloudinaryImageUploader } from '../components/CloudinaryImageUploader';
 import {
   Package,
@@ -15,6 +16,7 @@ import {
   Search,
   Filter,
   Image as ImageIcon,
+  ArrowLeft,
 } from 'lucide-react';
 
 const PRESET_IMAGES = [
@@ -34,6 +36,7 @@ const PRESET_IMAGES = [
 ];
 
 export const ProductsAdminPage: React.FC = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,25 +64,30 @@ export const ProductsAdminPage: React.FC = () => {
   // Variants in form
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const fetchCatalog = () => {
+  const fetchCatalog = async () => {
     setLoading(true);
-    Promise.all([
-      fetch('/api/admin/products').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-      fetch('/api/admin/categories').then((r) => r.json()).catch(() => ({ success: false, data: [] })),
-    ])
-      .then(([pRes, cRes]) => {
-        if (pRes.success) setProducts(pRes.data);
-        if (cRes.success) {
-          setCategories(cRes.data);
-          if (cRes.data[0] && !categoryId) setCategoryId(cRes.data[0].id);
-        }
-      })
-      .finally(() => setLoading(false));
+    const [pList, cList] = await Promise.all([
+      dataStore.getProducts(),
+      dataStore.getCategories(),
+    ]);
+    setProducts(pList);
+    setCategories(cList);
+    if (cList[0] && !categoryId) setCategoryId(cList[0].id);
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchCatalog();
+
+    const unsub = dataStore.subscribe((event) => {
+      if (event.type === 'products_updated' || event.type === 'inventory_updated') {
+        fetchCatalog();
+      }
+    });
+
+    return () => unsub();
   }, []);
 
   const openCreateModal = () => {
@@ -221,35 +229,31 @@ export const ProductsAdminPage: React.FC = () => {
     };
 
     try {
-      const url = editingProductId ? `/api/products/${editingProductId}` : '/api/products';
-      const method = editingProductId ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      const result = await dataStore.saveProduct({
+        id: editingProductId || undefined,
+        ...payload,
       });
 
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to save product');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save product');
       }
 
+      setSuccessMsg(editingProductId ? 'Product updated successfully!' : 'New product created successfully!');
+      setTimeout(() => setSuccessMsg(null), 3000);
       setIsModalOpen(false);
       fetchCatalog();
     } catch (err: any) {
-      setFormError(err.message);
+      setFormError(err.message || 'Failed to save product');
     }
   };
 
   const handleDeleteProduct = async (id: string) => {
     if (!confirm('Are you sure you want to archive this product?')) return;
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        fetchCatalog();
-      }
+      await dataStore.deleteProduct(id);
+      setSuccessMsg('Product archived successfully');
+      setTimeout(() => setSuccessMsg(null), 3000);
+      fetchCatalog();
     } catch {}
   };
 
@@ -269,42 +273,63 @@ export const ProductsAdminPage: React.FC = () => {
   const selectedCategoryObj = categories.find((c) => c.id === categoryId);
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Back Navigation Bar */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 border border-slate-200 transition"
+        >
+          <ArrowLeft className="h-4 w-4 text-emerald-600" />
+          <span>← Back to Dashboard</span>
+        </button>
+        <span className="text-xs text-slate-500 font-semibold">{products.length} Products Active</span>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white">Product & Wholesale Pricing Manager</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Product & Wholesale Pricing Manager</h1>
+          <p className="text-xs text-slate-500 mt-1">
             Configure {products.length} grocery items, stock counts, and tiered wholesale pricing slabs.
           </p>
         </div>
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-500 transition self-start sm:self-auto"
+          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" />
           <span>Add New Product</span>
         </button>
       </div>
 
+      {/* Success and Error alerts */}
+      {successMsg && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
       {/* Filter & Search Bar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950 p-3 shadow-xs">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-xs">
         <div className="relative w-full md:w-80">
           <input
             type="text"
             placeholder="Search by title, brand, or SKU..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-800 bg-slate-900 py-2 pl-9 pr-3 text-xs text-white placeholder-slate-500 outline-none focus:border-emerald-500"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500 focus:bg-white transition"
           />
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-300 outline-none focus:border-emerald-500"
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 focus:bg-white"
           >
             <option value="all">All Categories ({products.length})</option>
             {categories.map((c) => (
@@ -318,22 +343,22 @@ export const ProductsAdminPage: React.FC = () => {
             onClick={() => setFilterWholesale(!filterWholesale)}
             className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition border ${
               filterWholesale
-                ? 'border-amber-500 bg-amber-500 text-slate-950 font-black'
-                : 'border-slate-800 bg-slate-900 text-slate-300 hover:text-white'
+                ? 'border-amber-400 bg-amber-500 text-slate-950 font-black shadow-xs'
+                : 'border-slate-200 bg-slate-50 text-slate-700 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <Zap className={`h-3.5 w-3.5 ${filterWholesale ? 'fill-slate-950' : 'text-amber-400'}`} />
+            <Zap className={`h-3.5 w-3.5 ${filterWholesale ? 'fill-slate-950' : 'text-amber-500'}`} />
             <span>Wholesale Only</span>
           </button>
         </div>
       </div>
 
       {/* Products Table */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-950 p-6 shadow-xs overflow-hidden">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-bold">
+              <tr className="border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
                 <th className="pb-3">Product</th>
                 <th className="pb-3">Category</th>
                 <th className="pb-3">Variants</th>
@@ -343,16 +368,16 @@ export const ProductsAdminPage: React.FC = () => {
                 <th className="pb-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500">
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
                     Loading catalog...
                   </td>
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500">
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
                     No products matching filter.
                   </td>
                 </tr>
@@ -363,35 +388,35 @@ export const ProductsAdminPage: React.FC = () => {
                   const isLow = totalStock <= (defaultVar?.lowStockThreshold || 10);
 
                   return (
-                    <tr key={p.id} className="hover:bg-slate-900/40 transition">
+                    <tr key={p.id} className="hover:bg-slate-50/70 transition">
                       <td className="py-3.5 flex items-center gap-3">
                         <img
                           src={p.images[0] || PRESET_IMAGES[0].url}
                           alt=""
-                          className="h-10 w-10 rounded-xl object-cover bg-slate-900 flex-shrink-0"
+                          className="h-10 w-10 rounded-xl object-cover bg-slate-100 border border-slate-200 flex-shrink-0"
                         />
                         <div>
-                          <span className="font-bold text-white text-xs line-clamp-1">{p.title}</span>
+                          <span className="font-bold text-slate-900 text-xs line-clamp-1">{p.title}</span>
                           <span className="text-[11px] text-slate-500 font-medium">
                             {p.brand || 'No brand'} • {p.variants.length} variant(s)
                           </span>
                         </div>
                       </td>
-                      <td className="py-3.5 text-slate-300">
+                      <td className="py-3.5 text-slate-600 font-medium">
                         {categories.find((c) => c.id === p.categoryId)?.name || p.categoryId}
                       </td>
-                      <td className="py-3.5 text-slate-300 font-medium">
+                      <td className="py-3.5 text-slate-600 font-medium">
                         {p.variants.map((v) => v.name).join(', ')}
                       </td>
-                      <td className="py-3.5 font-black text-white">₹{defaultVar?.basePrice}</td>
+                      <td className="py-3.5 font-black text-slate-900">₹{defaultVar?.basePrice}</td>
                       <td className="py-3.5">
                         <span
                           className={`font-black ${
                             totalStock === 0
-                              ? 'text-rose-400'
+                              ? 'text-rose-600'
                               : isLow
-                              ? 'text-amber-400'
-                              : 'text-emerald-400'
+                              ? 'text-amber-600'
+                              : 'text-emerald-700'
                           }`}
                         >
                           {totalStock} units
@@ -399,25 +424,25 @@ export const ProductsAdminPage: React.FC = () => {
                       </td>
                       <td className="py-3.5">
                         {p.isWholesaleEnabled ? (
-                          <span className="inline-flex items-center gap-1 rounded bg-amber-950 border border-amber-800/80 px-2 py-0.5 text-[10px] font-black text-amber-400">
-                            <Zap className="h-3 w-3 fill-amber-400" />
+                          <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                            <Zap className="h-3 w-3 fill-amber-500" />
                             {defaultVar?.pricingTiers?.length || 0} Slabs Active
                           </span>
                         ) : (
-                          <span className="text-slate-500 text-[11px]">Retail Only</span>
+                          <span className="text-slate-400 text-[11px]">Retail Only</span>
                         )}
                       </td>
                       <td className="py-3.5 text-right space-x-2">
                         <button
                           onClick={() => openEditModal(p)}
-                          className="rounded-lg bg-slate-900 p-2 text-slate-300 hover:text-white hover:bg-slate-800 transition"
+                          className="rounded-lg bg-slate-100 p-2 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 transition border border-slate-200"
                           title="Edit product"
                         >
                           <Edit2 className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteProduct(p.id)}
-                          className="rounded-lg bg-slate-900 p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition"
+                          className="rounded-lg bg-slate-100 p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition border border-slate-200"
                           title="Archive product"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -434,22 +459,22 @@ export const ProductsAdminPage: React.FC = () => {
 
       {/* Add / Edit Product Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-3xl rounded-3xl border border-slate-800 bg-slate-950 p-6 sm:p-8 shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-lg font-bold text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <h3 className="text-lg font-bold text-slate-900">
                 {editingProductId ? 'Edit Product & Wholesale Slabs' : 'Add New Product'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="rounded-full bg-slate-900 p-1.5 text-slate-400 hover:text-white"
+                className="rounded-full bg-slate-100 p-1.5 text-slate-400 hover:text-slate-600"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {formError && (
-              <div className="rounded-2xl border border-rose-800 bg-rose-950/70 p-4 text-xs font-bold text-rose-300">
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-800">
                 {formError}
               </div>
             )}
@@ -458,34 +483,34 @@ export const ProductsAdminPage: React.FC = () => {
               {/* Basic Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-300 mb-1">Product Title *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Product Title *</label>
                   <input
                     type="text"
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Royal Feast Aged Basmati Rice"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-white outline-none focus:border-emerald-500 font-medium"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500 font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1">Brand Name</label>
+                  <label className="block font-bold text-slate-700 mb-1">Brand Name</label>
                   <input
                     type="text"
                     value={brand}
                     onChange={(e) => setBrand(e.target.value)}
                     placeholder="e.g. Shudh Foods, Royal Feast"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-white outline-none focus:border-emerald-500"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1">Category *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Category *</label>
                   <select
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-white outline-none focus:border-emerald-500 font-bold"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500 font-bold"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -497,11 +522,11 @@ export const ProductsAdminPage: React.FC = () => {
 
                 {selectedCategoryObj?.subcategories && selectedCategoryObj.subcategories.length > 0 && (
                   <div>
-                    <label className="block font-bold text-slate-300 mb-1">Subcategory</label>
+                    <label className="block font-bold text-slate-700 mb-1">Subcategory</label>
                     <select
                       value={subcategoryId}
                       onChange={(e) => setSubcategoryId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-white outline-none focus:border-emerald-500"
+                      className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500"
                     >
                       <option value="">None (Primary Category)</option>
                       {selectedCategoryObj.subcategories.map((sub) => (
@@ -518,35 +543,35 @@ export const ProductsAdminPage: React.FC = () => {
                     value={imageUrl}
                     onChange={setImageUrl}
                     folder="dailyfresh/products"
-                    label="Product Image (Cloudinary Drag & Drop or Presets)"
+                    label="Product Image (Upload or Presets)"
                     presets={PRESET_IMAGES.slice(0, 8)}
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-300 mb-1">Product Description</label>
+                  <label className="block font-bold text-slate-700 mb-1">Product Description</label>
                   <textarea
                     rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Detailed description, culinary usage and pack details..."
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-white outline-none focus:border-emerald-500"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               {/* Wholesale Toggle */}
-              <div className="flex items-center gap-3 rounded-2xl border border-amber-900/60 bg-amber-950/30 p-4">
+              <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
                 <input
                   type="checkbox"
                   id="wholesaleCheck"
                   checked={isWholesaleEnabled}
                   onChange={(e) => setIsWholesaleEnabled(e.target.checked)}
-                  className="h-4 w-4 rounded text-amber-500"
+                  className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500"
                 />
                 <label htmlFor="wholesaleCheck" className="cursor-pointer">
-                  <span className="font-bold text-amber-300">Enable Wholesale Tier Pricing Engine</span>
-                  <span className="block text-[11px] text-slate-400">
+                  <span className="font-bold text-amber-900">Enable Wholesale Tier Pricing Engine</span>
+                  <span className="block text-[11px] text-slate-600">
                     Allows customers to unlock discounted per-unit prices when purchasing above quantity breakpoints.
                   </span>
                 </label>
@@ -555,11 +580,11 @@ export const ProductsAdminPage: React.FC = () => {
               {/* Variants and Wholesale Tiers Builder */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-white text-sm">Product Variants ({variants.length})</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">Product Variants ({variants.length})</h4>
                   <button
                     type="button"
                     onClick={handleAddVariant}
-                    className="inline-flex items-center gap-1 rounded-xl bg-slate-900 border border-slate-800 px-3 py-1.5 text-[11px] font-bold text-emerald-400 hover:text-white"
+                    className="inline-flex items-center gap-1 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     <span>Add Variant</span>
@@ -569,17 +594,17 @@ export const ProductsAdminPage: React.FC = () => {
                 {variants.map((v, vIdx) => (
                   <div
                     key={v.id || vIdx}
-                    className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-4"
+                    className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-4"
                   >
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                      <span className="font-bold text-emerald-400 text-xs">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                      <span className="font-bold text-emerald-800 text-xs">
                         Variant #{vIdx + 1}: {v.name || 'Untitled'}
                       </span>
                       {variants.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveVariant(vIdx)}
-                          className="text-slate-500 hover:text-rose-400 text-[10px] font-bold flex items-center gap-1"
+                          className="text-slate-500 hover:text-rose-600 text-[10px] font-bold flex items-center gap-1"
                         >
                           <Trash2 className="h-3 w-3" />
                           <span>Remove Variant</span>
@@ -589,7 +614,7 @@ export const ProductsAdminPage: React.FC = () => {
 
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                       <div>
-                        <label className="block text-[11px] text-slate-400 font-bold mb-1">Variant Name</label>
+                        <label className="block text-[11px] text-slate-600 font-bold mb-1">Variant Name</label>
                         <input
                           type="text"
                           required
@@ -600,11 +625,11 @@ export const ProductsAdminPage: React.FC = () => {
                             setVariants(updated);
                           }}
                           placeholder="e.g. 1 kg Pouch"
-                          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white font-medium"
+                          className="w-full rounded-lg border border-slate-300 bg-white p-2 text-slate-900 font-medium"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 font-bold mb-1">SKU</label>
+                        <label className="block text-[11px] text-slate-600 font-bold mb-1">SKU</label>
                         <input
                           type="text"
                           value={v.sku}
@@ -613,11 +638,11 @@ export const ProductsAdminPage: React.FC = () => {
                             updated[vIdx].sku = e.target.value;
                             setVariants(updated);
                           }}
-                          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white font-mono"
+                          className="w-full rounded-lg border border-slate-300 bg-white p-2 text-slate-900 font-mono"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 font-bold mb-1">MRP (₹)</label>
+                        <label className="block text-[11px] text-slate-600 font-bold mb-1">MRP (₹)</label>
                         <input
                           type="number"
                           value={v.mrp}
@@ -626,11 +651,11 @@ export const ProductsAdminPage: React.FC = () => {
                             updated[vIdx].mrp = Number(e.target.value);
                             setVariants(updated);
                           }}
-                          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white font-bold"
+                          className="w-full rounded-lg border border-slate-300 bg-white p-2 text-slate-900 font-bold"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 font-bold mb-1">Base Price (₹)</label>
+                        <label className="block text-[11px] text-slate-600 font-bold mb-1">Base Price (₹)</label>
                         <input
                           type="number"
                           value={v.basePrice}
@@ -639,11 +664,11 @@ export const ProductsAdminPage: React.FC = () => {
                             updated[vIdx].basePrice = Number(e.target.value);
                             setVariants(updated);
                           }}
-                          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-emerald-400 font-bold"
+                          className="w-full rounded-lg border border-slate-300 bg-white p-2 text-emerald-700 font-bold"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 font-bold mb-1">Stock Count</label>
+                        <label className="block text-[11px] text-slate-600 font-bold mb-1">Stock Count</label>
                         <input
                           type="number"
                           value={v.stock}
@@ -652,23 +677,23 @@ export const ProductsAdminPage: React.FC = () => {
                             updated[vIdx].stock = Number(e.target.value);
                             setVariants(updated);
                           }}
-                          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white font-bold"
+                          className="w-full rounded-lg border border-slate-300 bg-white p-2 text-slate-900 font-bold"
                         />
                       </div>
                     </div>
 
                     {/* Wholesale Tiers */}
                     {isWholesaleEnabled && (
-                      <div className="border-t border-slate-800 pt-3 space-y-2">
+                      <div className="border-t border-slate-200 pt-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
-                            <Zap className="h-3 w-3 fill-amber-400" />
+                          <span className="text-[11px] font-bold text-amber-800 flex items-center gap-1">
+                            <Zap className="h-3 w-3 fill-amber-500" />
                             Wholesale Tier Slabs ({v.pricingTiers?.length || 0})
                           </span>
                           <button
                             type="button"
                             onClick={() => handleAddTier(vIdx)}
-                            className="text-[10px] font-bold text-emerald-400 hover:underline flex items-center gap-1"
+                            className="text-[10px] font-bold text-emerald-700 hover:underline flex items-center gap-1"
                           >
                             <Plus className="h-3 w-3" />
                             <span>Add Tier Slab</span>
@@ -687,7 +712,7 @@ export const ProductsAdminPage: React.FC = () => {
                                   updated[vIdx].pricingTiers[tIdx].minQty = Number(e.target.value);
                                   setVariants(updated);
                                 }}
-                                className="w-16 rounded-lg border border-slate-700 bg-slate-950 p-1.5 text-white text-center font-bold"
+                                className="w-16 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-900 text-center font-bold"
                               />
                               <span className="text-slate-500">to</span>
                               <input
@@ -700,7 +725,7 @@ export const ProductsAdminPage: React.FC = () => {
                                   updated[vIdx].pricingTiers[tIdx].maxQty = val;
                                   setVariants(updated);
                                 }}
-                                className="w-20 rounded-lg border border-slate-700 bg-slate-950 p-1.5 text-white text-center"
+                                className="w-20 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-900 text-center"
                               />
                               <span className="text-slate-500">→ ₹</span>
                               <input
@@ -712,7 +737,7 @@ export const ProductsAdminPage: React.FC = () => {
                                   updated[vIdx].pricingTiers[tIdx].unitPrice = Number(e.target.value);
                                   setVariants(updated);
                                 }}
-                                className="w-20 rounded-lg border border-slate-700 bg-slate-950 p-1.5 text-emerald-400 font-bold"
+                                className="w-20 rounded-lg border border-slate-300 bg-white p-1.5 text-emerald-700 font-bold"
                               />
                               <input
                                 type="text"
@@ -723,12 +748,12 @@ export const ProductsAdminPage: React.FC = () => {
                                   updated[vIdx].pricingTiers[tIdx].label = e.target.value;
                                   setVariants(updated);
                                 }}
-                                className="flex-1 rounded-lg border border-slate-700 bg-slate-950 p-1.5 text-white"
+                                className="flex-1 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-900"
                               />
                               <button
                                 type="button"
                                 onClick={() => handleRemoveTier(vIdx, tIdx)}
-                                className="text-slate-500 hover:text-rose-400 p-1"
+                                className="text-slate-400 hover:text-rose-600 p-1"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -742,17 +767,17 @@ export const ProductsAdminPage: React.FC = () => {
               </div>
 
               {/* Submit / Cancel Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 font-bold text-slate-300 hover:bg-slate-800"
+                  className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 font-bold text-slate-700 hover:bg-slate-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-emerald-600 px-6 py-2.5 font-bold text-white shadow-md hover:bg-emerald-500 transition"
+                  className="rounded-xl bg-emerald-600 px-6 py-2.5 font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition"
                 >
                   Save Product & Slabs
                 </button>

@@ -25,11 +25,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const mrp = defaultVariant?.mrp || price;
   const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const hasWholesaleTiers = product.isWholesaleEnabled && (defaultVariant?.pricingTiers?.length || 0) > 1;
+  const stock = defaultVariant?.stock ?? 0;
+  const isOutOfStock = stock <= 0;
+  const isLowStock = stock > 0 && stock <= (defaultVariant?.lowStockThreshold || 5);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (defaultVariant) {
+    if (defaultVariant && !isOutOfStock) {
       addItem(product, defaultVariant, 1);
     }
   };
@@ -142,6 +145,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             )}
           </div>
 
+          {/* Stock Availability Badge */}
+          <div className="pt-0.5">
+            {isOutOfStock ? (
+              <span className="inline-block rounded-md bg-rose-100 text-rose-700 px-2 py-0.5 text-[10px] font-extrabold uppercase">
+                Out of Stock
+              </span>
+            ) : isLowStock ? (
+              <span className="inline-block rounded-md bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-extrabold">
+                Only {stock} left in stock!
+              </span>
+            ) : (
+              <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-extrabold">
+                In Stock ({stock} available)
+              </span>
+            )}
+          </div>
+
           {/* Prime Fast Delivery Tag */}
           <p className="text-[10px] sm:text-[11px] font-semibold text-slate-600 flex items-center gap-1">
             <Truck className="h-3 w-3 text-emerald-600" />
@@ -151,10 +171,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Add to Cart CTA Button */}
           <button
             onClick={handleAddToCart}
-            className="w-full mt-2 flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 active:scale-95 py-2 text-xs font-black text-slate-950 shadow-xs transition"
+            disabled={isOutOfStock}
+            className={`w-full mt-2 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black shadow-xs transition ${
+              isOutOfStock
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-amber-400 hover:bg-amber-500 active:scale-95 text-slate-950'
+            }`}
           >
             <ShoppingBag className="h-3.5 w-3.5" />
-            <span>Add to Cart</span>
+            <span>{isOutOfStock ? 'Currently Unavailable' : 'Add to Cart'}</span>
           </button>
         </div>
       </div>

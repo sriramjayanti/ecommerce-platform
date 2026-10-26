@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Product, ProductVariant, Review, INITIAL_PRODUCTS } from '@ecommerce/shared';
+import { Product, ProductVariant, Review, INITIAL_PRODUCTS, dataStore } from '@ecommerce/shared';
 import { useCart } from '../context/CartContext';
 import { WholesaleTierTable } from '../components/WholesaleTierTable';
 import {
@@ -20,6 +20,7 @@ import {
   Info,
   Package,
   Plus,
+  ArrowLeft,
 } from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
@@ -58,38 +59,37 @@ export const ProductDetailPage: React.FC = () => {
       setLoading(false);
     }
 
-    fetch(`/api/products/${idOrSlug}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success && d.data) {
-          const prod: Product = d.data;
-          setProduct(prod);
-          const defVar = prod.variants.find((v) => v.isDefault) || prod.variants[0];
-          setSelectedVariant(defVar);
-          setSelectedImage(prod.images[0] || '');
-
-          // Fetch reviews
-          fetch(`/api/reviews?productId=${prod.id}`)
-            .then((res) => res.json())
-            .then((rData) => {
-              if (rData.success) setReviews(rData.data);
-            })
-            .catch(() => {});
-
-          // Fetch other catalog items for bundle
-          fetch('/api/products')
-            .then((res) => res.json())
-            .then((allP) => {
-              if (allP.success && allP.data?.length) {
-                const others = allP.data.filter((p: Product) => p.id !== prod.id).slice(0, 2);
-                setFrequentlyBought(others);
-              }
-            })
-            .catch(() => {});
+    const loadProductData = async () => {
+      if (!idOrSlug) return;
+      const found = await dataStore.getProductByIdOrSlug(idOrSlug);
+      if (found) {
+        setProduct(found);
+        setSelectedVariant((prev) => {
+          if (prev) {
+            const matching = found.variants.find((v) => v.id === prev.id);
+            if (matching) return matching;
+          }
+          return found.variants.find((v) => v.isDefault) || found.variants[0];
+        });
+        if (!selectedImage) {
+          setSelectedImage(found.images[0] || '');
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      }
+      setLoading(false);
+    };
+
+    loadProductData();
+
+    // Subscribe to real-time inventory and product updates
+    const unsubscribe = dataStore.subscribe((event) => {
+      if (event.type === 'inventory_updated' || event.type === 'products_updated') {
+        loadProductData();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [idOrSlug]);
 
   if (loading) {
@@ -151,8 +151,21 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 py-6 font-sans">
-      <div className="max-w-7xl mx-auto px-4 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 space-y-6">
         
+        {/* Simple Back Navigation Bar */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-100 border border-slate-200 transition"
+          >
+            <ArrowLeft className="h-4 w-4 text-emerald-600" />
+            <span>← Back to Products</span>
+          </button>
+          <span className="text-xs text-slate-500 font-medium">SKU: {selectedVariant?.sku}</span>
+        </div>
+
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
           <Link to="/" className="hover:text-amber-600">Home</Link>
@@ -387,39 +400,61 @@ export const ProductDetailPage: React.FC = () => {
 
               {/* In Stock & Quantity */}
               <div className="border-t border-slate-100 pt-3 space-y-3">
-                <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-black uppercase">
-                  In Stock ({selectedVariant.stock} available)
-                </span>
+                {selectedVariant.stock <= 0 ? (
+                  <span className="inline-block rounded-md bg-rose-100 text-rose-800 px-2.5 py-1 text-[11px] font-black uppercase">
+                    Currently Out of Stock
+                  </span>
+                ) : selectedVariant.stock <= (selectedVariant.lowStockThreshold || 5) ? (
+                  <span className="inline-block rounded-md bg-amber-100 text-amber-800 px-2.5 py-1 text-[11px] font-black">
+                    Only {selectedVariant.stock} left in stock - order soon!
+                  </span>
+                ) : (
+                  <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-2.5 py-1 text-[11px] font-black uppercase">
+                    In Stock ({selectedVariant.stock} available)
+                  </span>
+                )}
 
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Quantity:</label>
-                  <select
-                    value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value))}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-amber-500"
-                  >
-                    {[1, 2, 3, 4, 5, 6, 10, 15, 25, 50].map((num) => (
-                      <option key={num} value={num}>
-                        {num} {num === 1 ? 'unit' : 'units'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {selectedVariant.stock > 0 && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Quantity:</label>
+                    <select
+                      value={quantity}
+                      onChange={(e) => setQuantity(Number(e.target.value))}
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-amber-500"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 10, 15, 25, 50].map((num) => (
+                        <option key={num} value={num}>
+                          {num} {num === 1 ? 'unit' : 'units'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* CTAs: Add to Cart (Yellow) & Buy Now (Orange) */}
               <div className="space-y-2 pt-2">
                 <button
                   onClick={handleAddToCart}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-400 hover:bg-amber-500 active:scale-95 py-3 text-xs font-black text-slate-950 shadow-md transition"
+                  disabled={selectedVariant.stock <= 0}
+                  className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-black shadow-md transition ${
+                    selectedVariant.stock <= 0
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-amber-400 hover:bg-amber-500 active:scale-95 text-slate-950'
+                  }`}
                 >
                   <ShoppingBag className="h-4 w-4" />
-                  <span>Add to Cart</span>
+                  <span>{selectedVariant.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}</span>
                 </button>
 
                 <button
                   onClick={handleBuyNow}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 py-3 text-xs font-black text-white shadow-md transition"
+                  disabled={selectedVariant.stock <= 0}
+                  className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-black shadow-md transition ${
+                    selectedVariant.stock <= 0
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed hidden'
+                      : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white'
+                  }`}
                 >
                   <Zap className="h-4 w-4 fill-white" />
                   <span>Buy Now</span>

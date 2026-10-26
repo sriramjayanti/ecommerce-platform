@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Review } from '@ecommerce/shared';
-import { MessageSquare, Check, X, Star, Trash2, Filter } from 'lucide-react';
+import { MessageSquare, Check, X, Star, Trash2, Filter, ArrowLeft } from 'lucide-react';
 
 export const ReviewsModerationPage: React.FC = () => {
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [loading, setLoading] = useState(true);
@@ -14,6 +16,7 @@ export const ReviewsModerationPage: React.FC = () => {
       .then((d) => {
         if (d.success) setReviews(d.data);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   };
 
@@ -52,11 +55,24 @@ export const ReviewsModerationPage: React.FC = () => {
   });
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Back Navigation Bar */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 border border-slate-200 transition"
+        >
+          <ArrowLeft className="h-4 w-4 text-emerald-600" />
+          <span>← Back to Dashboard</span>
+        </button>
+        <span className="text-xs text-slate-500 font-semibold">{reviews.length} Total Reviews</span>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white">Customer Reviews Moderation</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Customer Reviews Moderation</h1>
+          <p className="text-xs text-slate-500 mt-1">
             Review customer ratings & feedback across products, and approve/hide ratings displayed on storefront.
           </p>
         </div>
@@ -66,7 +82,7 @@ export const ReviewsModerationPage: React.FC = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-300 outline-none focus:border-emerald-500"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-2xs"
           >
             <option value="all">All Reviews ({reviews.length})</option>
             <option value="pending">Pending ({reviews.filter((r) => r.status === 'pending').length})</option>
@@ -76,44 +92,44 @@ export const ReviewsModerationPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-800 bg-slate-950 p-6 shadow-xs overflow-hidden">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs overflow-hidden">
         <div className="space-y-4">
           {loading ? (
-            <p className="text-center text-xs text-slate-500 py-8">Loading reviews...</p>
+            <p className="text-center text-xs text-slate-400 py-8">Loading reviews...</p>
           ) : filtered.length === 0 ? (
-            <p className="text-center text-xs text-slate-500 py-8">No customer reviews matching filter.</p>
+            <p className="text-center text-xs text-slate-400 py-8">No customer reviews matching filter.</p>
           ) : (
             filtered.map((rev) => (
               <div
                 key={rev.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4"
               >
                 <div className="space-y-1.5 text-xs">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-white text-sm">{rev.userName}</span>
-                    <div className="flex text-amber-400">
+                    <span className="font-bold text-slate-900 text-sm">{rev.userName}</span>
+                    <div className="flex text-amber-500">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
                           key={s}
-                          className={`h-3.5 w-3.5 ${s <= rev.rating ? 'fill-amber-400' : 'text-slate-700'}`}
+                          className={`h-3.5 w-3.5 ${s <= rev.rating ? 'fill-amber-400' : 'text-slate-300'}`}
                         />
                       ))}
                     </div>
                     <span
-                      className={`rounded px-2 py-0.5 text-[10px] font-black uppercase ${
+                      className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase border ${
                         rev.status === 'approved'
-                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : rev.status === 'rejected'
-                          ? 'bg-rose-950 text-rose-400 border border-rose-800'
-                          : 'bg-amber-950 text-amber-400 border border-amber-800'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
                       }`}
                     >
                       {rev.status}
                     </span>
                   </div>
-                  <h4 className="font-bold text-slate-200 text-xs">{rev.title}</h4>
-                  <p className="text-slate-300 leading-relaxed">{rev.comment}</p>
-                  <span className="text-[10px] text-slate-500 font-mono block">
+                  <h4 className="font-bold text-slate-800 text-xs">{rev.title}</h4>
+                  <p className="text-slate-600 leading-relaxed">{rev.comment}</p>
+                  <span className="text-[10px] text-slate-400 font-mono block">
                     Product ID: {rev.productId} • {new Date(rev.createdAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -122,7 +138,7 @@ export const ReviewsModerationPage: React.FC = () => {
                   {rev.status !== 'approved' && (
                     <button
                       onClick={() => handleModerate(rev.id, 'approved')}
-                      className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-500"
+                      className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition"
                     >
                       <Check className="h-3.5 w-3.5" />
                       <span>Approve</span>
@@ -131,7 +147,7 @@ export const ReviewsModerationPage: React.FC = () => {
                   {rev.status !== 'rejected' && (
                     <button
                       onClick={() => handleModerate(rev.id, 'rejected')}
-                      className="inline-flex items-center gap-1 rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-bold text-rose-400 hover:bg-slate-700"
+                      className="inline-flex items-center gap-1 rounded-xl bg-slate-100 border border-slate-200 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition"
                     >
                       <X className="h-3.5 w-3.5" />
                       <span>Reject</span>
@@ -139,7 +155,7 @@ export const ReviewsModerationPage: React.FC = () => {
                   )}
                   <button
                     onClick={() => handleDelete(rev.id)}
-                    className="rounded-xl bg-slate-900 border border-slate-800 p-2 text-slate-500 hover:text-rose-400"
+                    className="rounded-xl bg-white border border-slate-200 p-2 text-slate-400 hover:text-rose-600 transition"
                     title="Delete review"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
