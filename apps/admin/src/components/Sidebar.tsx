@@ -12,10 +12,12 @@ import {
   Store,
   ExternalLink,
   ShieldAlert,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Overview Metrics', icon: LayoutDashboard },
+  { path: '/reports', label: 'Reports & Export', icon: FileSpreadsheet },
   { path: '/products', label: 'Products & Wholesale Tiers', icon: Package },
   { path: '/categories', label: 'Categories', icon: Layers },
   { path: '/inventory', label: 'Inventory & Stock Logs', icon: Boxes },

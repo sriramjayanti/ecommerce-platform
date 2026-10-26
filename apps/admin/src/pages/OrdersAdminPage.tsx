@@ -40,6 +40,7 @@ export const OrdersAdminPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adminNoteInput, setAdminNoteInput] = useState<string>('');
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -60,13 +61,15 @@ export const OrdersAdminPage: React.FC = () => {
     return () => unsub();
   }, []);
 
-  const handleUpdateStatus = async (orderId: string, nextStatus: OrderStatus) => {
+  const handleUpdateStatus = async (orderId: string, nextStatus: OrderStatus, customNote?: string) => {
     try {
-      const res = await dataStore.updateOrderStatus(orderId, nextStatus, `Admin marked as ${nextStatus}`);
+      const note = customNote || adminNoteInput || `Status updated to ${nextStatus} by Store Admin`;
+      const res = await dataStore.updateOrderStatus(orderId, nextStatus, note, 'Store Admin');
       if (res.success && res.data) {
         if (selectedOrder?.id === orderId) {
           setSelectedOrder(res.data);
         }
+        setAdminNoteInput('');
         fetchOrders();
       }
     } catch {}
@@ -84,27 +87,30 @@ export const OrdersAdminPage: React.FC = () => {
     return true;
   });
 
-  const getNextStatus = (current: OrderStatus): OrderStatus | null => {
-    const idx = ORDER_STATUS_STEPS.indexOf(current as any);
-    if (idx >= 0 && idx < ORDER_STATUS_STEPS.length - 1) {
-      return ORDER_STATUS_STEPS[idx + 1] as OrderStatus;
+  const getNextSimpleAction = (current: OrderStatus): { nextStatus: OrderStatus; label: string } | null => {
+    const s = (current || '').toLowerCase();
+    if (s.includes('cancel') || s.includes('deliver')) return null;
+    if (s.includes('dispatch') || s.includes('pack') || s.includes('out for delivery')) {
+      return { nextStatus: 'Delivered', label: 'Mark Delivered' };
     }
-    return null;
+    return { nextStatus: 'Dispatched', label: 'Mark Dispatched' };
   };
 
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
       case 'Delivered':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'Confirmed':
+      case 'Dispatched':
+      case 'Out for Delivery':
       case 'Packed':
         return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'Out for Delivery':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      case 'Confirmed':
+      case 'Placed':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'Cancelled':
         return 'bg-rose-50 text-rose-700 border-rose-200';
       default:
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
 
@@ -188,7 +194,7 @@ export const OrdersAdminPage: React.FC = () => {
                 </tr>
               ) : (
                 filtered.map((ord) => {
-                  const nextStatus = getNextStatus(ord.orderStatus);
+                  const nextAction = getNextSimpleAction(ord.orderStatus);
 
                   return (
                     <tr key={ord.id} className="hover:bg-slate-50/80 transition">
@@ -238,14 +244,18 @@ export const OrdersAdminPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3.5 text-right space-x-1.5 whitespace-nowrap">
-                        {nextStatus && (
+                        {nextAction ? (
                           <button
-                            onClick={() => handleUpdateStatus(ord.id, nextStatus)}
+                            onClick={() => handleUpdateStatus(ord.id, nextAction.nextStatus)}
                             className="rounded-xl bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition"
                           >
-                            Mark {nextStatus}
+                            {nextAction.label}
                           </button>
-                        )}
+                        ) : ord.orderStatus === 'Delivered' ? (
+                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200">
+                            Delivered ✓
+                          </span>
+                        ) : null}
                         <button
                           onClick={() => setInvoiceOrder(ord)}
                           className="rounded-xl bg-slate-100 border border-slate-200 p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition"
@@ -287,23 +297,105 @@ export const OrdersAdminPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Status Progression Controls */}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-              <span className="text-slate-700 font-bold block">Current Fulfillment Status:</span>
-              <div className="flex flex-wrap items-center gap-2">
-                {EXTENDED_STATUS_STEPS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => handleUpdateStatus(selectedOrder.id, s as any)}
-                    className={`rounded-xl px-3 py-1.5 font-bold transition text-xs border ${
-                      selectedOrder.orderStatus === s
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+            {/* Status Progression Controls - Simple Customer Tracking Pipeline */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-slate-900 font-extrabold text-xs block">
+                    Customer Tracking Pipeline (Updated by Admin Only):
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Click a stage below to instantly update the customer's live tracking status.
+                  </span>
+                </div>
+                <span className="text-xs font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                  Current: {selectedOrder.orderStatus}
+                </span>
+              </div>
+
+              {/* 3 Simple Stages */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus(selectedOrder.id, 'Confirmed')}
+                  className={`rounded-xl p-2.5 font-bold transition text-xs border text-left flex flex-col justify-between ${
+                    selectedOrder.orderStatus === 'Confirmed'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-500'
+                  }`}
+                >
+                  <span className="font-extrabold">1. Order Confirmed</span>
+                  <span className={`text-[10px] ${selectedOrder.orderStatus === 'Confirmed' ? 'text-emerald-100' : 'text-slate-400'}`}>
+                    Verified by Admin
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus(selectedOrder.id, 'Dispatched')}
+                  className={`rounded-xl p-2.5 font-bold transition text-xs border text-left flex flex-col justify-between ${
+                    selectedOrder.orderStatus === 'Dispatched'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-blue-500'
+                  }`}
+                >
+                  <span className="font-extrabold">2. Dispatched</span>
+                  <span className={`text-[10px] ${selectedOrder.orderStatus === 'Dispatched' ? 'text-blue-100' : 'text-slate-400'}`}>
+                    Packed & Out for Delivery
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus(selectedOrder.id, 'Delivered')}
+                  className={`rounded-xl p-2.5 font-bold transition text-xs border text-left flex flex-col justify-between ${
+                    selectedOrder.orderStatus === 'Delivered'
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-600'
+                  }`}
+                >
+                  <span className="font-extrabold">3. Delivered</span>
+                  <span className={`text-[10px] ${selectedOrder.orderStatus === 'Delivered' ? 'text-emerald-100' : 'text-slate-400'}`}>
+                    Completed Delivery
+                  </span>
+                </button>
+              </div>
+
+              {/* Optional Admin Note Input */}
+              <div className="pt-2 border-t border-slate-200/60 space-y-1">
+                <label className="text-[11px] font-bold text-slate-700 block">
+                  Admin Note for Customer Live Tracking (Optional):
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={adminNoteInput}
+                    onChange={(e) => setAdminNoteInput(e.target.value)}
+                    placeholder="e.g. Dispatched via Rider Manoj (Bike KA-01-AB-1234), OTP: 5821"
+                    className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-emerald-500"
+                  />
+                  {adminNoteInput && (
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateStatus(selectedOrder.id, selectedOrder.orderStatus, adminNoteInput)}
+                      className="rounded-xl bg-slate-900 text-white px-3 py-1.5 text-xs font-bold hover:bg-slate-800"
+                    >
+                      Save Note
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Other Actions: Cancel */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                <span className="text-[11px] text-slate-400">Additional Actions:</span>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus(selectedOrder.id, 'Cancelled')}
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100 transition"
+                >
+                  Cancel Order
+                </button>
               </div>
             </div>
 

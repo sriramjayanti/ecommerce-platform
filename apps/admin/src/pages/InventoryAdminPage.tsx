@@ -152,13 +152,14 @@ export const InventoryAdminPage: React.FC = () => {
 
     if (!matchSearch) return false;
 
+    const threshold = Math.max(v.lowStockThreshold || 0, 15);
     if (stockFilter === 'out') return v.stock <= 0;
-    if (stockFilter === 'low') return v.stock > 0 && v.stock <= v.lowStockThreshold;
-    if (stockFilter === 'healthy') return v.stock > v.lowStockThreshold;
+    if (stockFilter === 'low') return v.stock > 0 && v.stock <= threshold;
+    if (stockFilter === 'healthy') return v.stock > threshold;
     return true;
   });
 
-  const lowStockCount = allVariants.filter((v) => v.stock <= v.lowStockThreshold && v.stock > 0).length;
+  const lowStockCount = allVariants.filter((v) => v.stock > 0 && v.stock <= Math.max(v.lowStockThreshold || 0, 15)).length;
   const outOfStockCount = allVariants.filter((v) => v.stock <= 0).length;
 
   return (
@@ -321,7 +322,7 @@ export const InventoryAdminPage: React.FC = () => {
                 ) : (
                   filteredVariants.map((v) => {
                     const isOut = v.stock <= 0;
-                    const isLow = v.stock > 0 && v.stock <= v.lowStockThreshold;
+                    const isLow = v.stock > 0 && v.stock <= Math.max(v.lowStockThreshold || 0, 15);
 
                     return (
                       <tr key={`${v.productId}-${v.id}`} className="hover:bg-slate-50/80 transition">

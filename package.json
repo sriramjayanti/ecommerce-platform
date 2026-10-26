@@ -9,6 +9,7 @@
     "backend"
   ],
   "scripts": {
+    "dev": "npm run dev:web",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:admin": "npm run dev --workspace=apps/admin",
     "dev:backend": "npm run dev --workspace=backend",
@@ -23,5 +24,8 @@
     "firebase"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
 }

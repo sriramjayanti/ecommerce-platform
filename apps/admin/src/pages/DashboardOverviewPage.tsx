@@ -57,7 +57,7 @@ export const DashboardOverviewPage: React.FC = () => {
 
   const lowStockVariants = products.flatMap((p) =>
     (p.variants || [])
-      .filter((v: any) => v.stock <= (v.lowStockThreshold || 10))
+      .filter((v: any) => v.stock <= Math.max(v.lowStockThreshold || 0, 15))
       .map((v: any) => ({ product: p, variant: v }))
   );
 
@@ -257,7 +257,7 @@ export const DashboardOverviewPage: React.FC = () => {
                     >
                       {v.stock === 0 ? 'Out of Stock' : `${v.stock} left`}
                     </span>
-                    <span className="text-[10px] text-slate-400">Min: {v.lowStockThreshold || 10}</span>
+                    <span className="text-[10px] text-slate-400">Min: {Math.max(v.lowStockThreshold || 0, 15)}</span>
                   </div>
                 </div>
               ))

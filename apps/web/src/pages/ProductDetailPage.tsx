@@ -404,7 +404,7 @@ export const ProductDetailPage: React.FC = () => {
                   <span className="inline-block rounded-md bg-rose-100 text-rose-800 px-2.5 py-1 text-[11px] font-black uppercase">
                     Currently Out of Stock
                   </span>
-                ) : selectedVariant.stock <= (selectedVariant.lowStockThreshold || 5) ? (
+                ) : selectedVariant.stock <= Math.max(selectedVariant.lowStockThreshold || 0, 15) ? (
                   <span className="inline-block rounded-md bg-amber-100 text-amber-800 px-2.5 py-1 text-[11px] font-black">
                     Only {selectedVariant.stock} left in stock - order soon!
                   </span>

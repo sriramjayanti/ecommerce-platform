@@ -12,6 +12,7 @@ import { OrdersAdminPage } from './pages/OrdersAdminPage';
 import { FeatureTogglesPage } from './pages/FeatureTogglesPage';
 import { ReviewsModerationPage } from './pages/ReviewsModerationPage';
 import { BannersAdminPage } from './pages/BannersAdminPage';
+import { ReportsAdminPage } from './pages/ReportsAdminPage';
 
 function AdminLayout() {
   const { adminUser } = useAdminAuth();
@@ -28,6 +29,7 @@ function AdminLayout() {
         <main className="flex-1 p-4 sm:p-6 w-full">
           <Routes>
             <Route path="/" element={<DashboardOverviewPage />} />
+            <Route path="/reports" element={<ReportsAdminPage />} />
             <Route path="/products" element={<ProductsAdminPage />} />
             <Route path="/categories" element={<CategoriesAdminPage />} />
             <Route path="/inventory" element={<InventoryAdminPage />} />

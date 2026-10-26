@@ -27,7 +27,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const hasWholesaleTiers = product.isWholesaleEnabled && (defaultVariant?.pricingTiers?.length || 0) > 1;
   const stock = defaultVariant?.stock ?? 0;
   const isOutOfStock = stock <= 0;
-  const isLowStock = stock > 0 && stock <= (defaultVariant?.lowStockThreshold || 5);
+  const isLowStock = stock > 0 && stock <= Math.max(defaultVariant?.lowStockThreshold || 0, 15);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();

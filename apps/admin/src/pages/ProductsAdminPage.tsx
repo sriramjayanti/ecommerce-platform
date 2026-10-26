@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Product, ProductVariant, PriceTier, Category, validatePriceTiers, dataStore } from '@ecommerce/shared';
-import { CloudinaryImageUploader } from '../components/CloudinaryImageUploader';
+import { UniversalImageUploader } from '../components/UniversalImageUploader';
 import {
   Package,
   Plus,
@@ -150,7 +150,7 @@ export const ProductsAdminPage: React.FC = () => {
         mrp: 90,
         basePrice: 75,
         stock: 50,
-        lowStockThreshold: 10,
+        lowStockThreshold: 15,
         pricingTiers: [
           { id: `t1-${Date.now()}`, minQty: 1, maxQty: 4, unitPrice: 75, label: 'Retail (1–4)' },
           { id: `t2-${Date.now()}`, minQty: 5, maxQty: null, unitPrice: 68, label: 'Wholesale (5+)' },
@@ -385,7 +385,7 @@ export const ProductsAdminPage: React.FC = () => {
                 filteredProducts.map((p) => {
                   const defaultVar = p.variants[0];
                   const totalStock = p.variants.reduce((sum, v) => sum + v.stock, 0);
-                  const isLow = totalStock <= (defaultVar?.lowStockThreshold || 10);
+                  const isLow = totalStock > 0 && totalStock <= Math.max(defaultVar?.lowStockThreshold || 0, 15);
 
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/70 transition">
@@ -539,12 +539,13 @@ export const ProductsAdminPage: React.FC = () => {
                 )}
 
                 <div className="sm:col-span-2">
-                  <CloudinaryImageUploader
+                  <UniversalImageUploader
                     value={imageUrl}
                     onChange={setImageUrl}
                     folder="dailyfresh/products"
-                    label="Product Image (Upload or Presets)"
+                    label="Product Image (Upload from PC or Web URL)"
                     presets={PRESET_IMAGES.slice(0, 8)}
+                    helperText="Upload any grocery image directly from your computer or pick from the preset library."
                   />
                 </div>
 

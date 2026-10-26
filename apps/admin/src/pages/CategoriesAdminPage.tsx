@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Category, dataStore } from '@ecommerce/shared';
 import { Layers, Plus, Trash2, Edit2, X, AlertTriangle, Image as ImageIcon, Sparkles, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { UniversalImageUploader } from '../components/UniversalImageUploader';
 
 const CATEGORY_PRESETS = [
   { name: 'Atta & Dals', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80' },
@@ -291,26 +292,14 @@ export const CategoriesAdminPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Banner Image URL</label>
-                <input
-                  type="text"
+                <UniversalImageUploader
                   value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500 font-mono text-[11px] mb-2"
+                  onChange={setImageUrl}
+                  folder="dailyfresh/categories"
+                  label="Category Image (Upload from Device or URL)"
+                  presets={CATEGORY_PRESETS.map((p) => ({ name: p.name, url: p.image }))}
+                  helperText="Upload an image from your PC or pick from presets. Used in customer header and browse pills."
                 />
-                <div className="flex flex-wrap gap-1">
-                  {CATEGORY_PRESETS.slice(0, 5).map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => setImageUrl(preset.image)}
-                      className="rounded bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] text-slate-700 hover:text-emerald-700 hover:border-emerald-300"
-                    >
-                      {preset.name}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Subcategories Management */}
