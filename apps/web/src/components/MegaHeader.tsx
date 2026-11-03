@@ -79,16 +79,10 @@ export const MegaHeader: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Load categories
-    fetch('/api/categories')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) setCategories(d.data);
-      })
-      .catch(async () => {
-        const cats = await dataStore.getCategories();
-        setCategories(cats);
-      });
+    // Load categories directly from synchronized dataStore
+    dataStore.getCategories().then((cats) => {
+      if (Array.isArray(cats)) setCategories(cats);
+    });
 
     // Load products for live search
     dataStore.getProducts().then((prods) => {

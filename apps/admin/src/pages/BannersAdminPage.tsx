@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Banner } from '@ecommerce/shared';
+import { Banner, dataStore } from '@ecommerce/shared';
 import { UniversalImageUploader } from '../components/UniversalImageUploader';
 import {
   Image as ImageIcon,
@@ -94,20 +94,29 @@ export const BannersAdminPage: React.FC = () => {
   const [previewSlideIdx, setPreviewSlideIdx] = useState(0);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(true);
   const [settingsSavedToast, setSettingsSavedToast] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const fetchBanners = () => {
+  const fetchBanners = async () => {
     setLoading(true);
-    fetch('/api/admin/banners')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) setBanners(d.data);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    try {
+      const data = await dataStore.getBanners();
+      setBanners(data);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchBanners();
+
+    const unsub = dataStore.subscribe((event) => {
+      if (event.type === 'banners_updated') {
+        fetchBanners();
+      }
+    });
+
+    return () => unsub();
   }, []);
 
   // Save animation settings to localStorage for storefront
@@ -160,53 +169,40 @@ export const BannersAdminPage: React.FC = () => {
     if (!title.trim() || !imageUrl.trim()) return;
 
     try {
-      const payload = {
-        title,
-        subtitle,
-        imageUrl,
-        linkUrl: linkUrl || '/',
+      const payload: Partial<Banner> = {
+        id: editingBannerId || undefined,
+        title: title.trim(),
+        subtitle: subtitle.trim(),
+        imageUrl: imageUrl.trim(),
+        linkUrl: linkUrl.trim() || '/',
         sortOrder: Number(sortOrder) || 1,
         isActive,
       };
 
-      const url = editingBannerId ? `/api/banners/${editingBannerId}` : '/api/banners';
-      const method = editingBannerId ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsModalOpen(false);
-        fetchBanners();
-      }
-    } catch {}
+      await dataStore.saveBanner(payload);
+      setSuccessMsg(editingBannerId ? 'Promo banner updated successfully!' : 'Promo banner created successfully!');
+      setTimeout(() => setSuccessMsg(null), 3000);
+      setIsModalOpen(false);
+      fetchBanners();
+    } catch (err: any) {
+      alert(err.message || 'Error saving banner');
+    }
   };
 
   const handleDeleteBanner = async (id: string) => {
     if (!confirm('Are you sure you want to delete this banner?')) return;
     try {
-      const res = await fetch(`/api/banners/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        fetchBanners();
-      }
+      await dataStore.deleteBanner(id);
+      setSuccessMsg('Promo banner removed successfully');
+      setTimeout(() => setSuccessMsg(null), 2500);
+      fetchBanners();
     } catch {}
   };
 
   const handleToggleActive = async (b: Banner) => {
     try {
-      const res = await fetch(`/api/banners/${b.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !b.isActive }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        fetchBanners();
-      }
+      await dataStore.saveBanner({ id: b.id, isActive: !b.isActive });
+      fetchBanners();
     } catch {}
   };
 
@@ -244,6 +240,13 @@ export const BannersAdminPage: React.FC = () => {
           <span>Add Promo Banner</span>
         </button>
       </div>
+
+      {successMsg && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
 
       {/* Slide Animation Settings & Live Simulator Card */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
@@ -558,13 +561,19 @@ export const BannersAdminPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Display Sort Order</label>
-                  <input
-                    type="number"
+                  <label className="block font-bold text-slate-700 mb-1">Slide Order (1 to 4)</label>
+                  <select
                     value={sortOrder}
                     onChange={(e) => setSortOrder(Number(e.target.value))}
                     className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500 font-bold"
-                  />
+                  >
+                    <option value={1}>Slide 1 (First)</option>
+                    <option value={2}>Slide 2 (Second)</option>
+                    <option value={3}>Slide 3 (Third)</option>
+                    <option value={4}>Slide 4 (Fourth)</option>
+                    <option value={5}>Slide 5</option>
+                    <option value={6}>Slide 6</option>
+                  </select>
                 </div>
               </div>
 

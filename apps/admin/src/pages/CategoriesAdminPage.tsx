@@ -24,9 +24,7 @@ export const CategoriesAdminPage: React.FC = () => {
 
   // Form
   const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [sortOrder, setSortOrder] = useState<number>(1);
   const [subcategories, setSubcategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [newSubName, setNewSubName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -54,9 +52,7 @@ export const CategoriesAdminPage: React.FC = () => {
   const openCreateModal = () => {
     setEditingCategoryId(null);
     setName('');
-    setSlug('');
     setImageUrl(CATEGORY_PRESETS[0].image);
-    setSortOrder(categories.length + 1);
     setSubcategories([]);
     setNewSubName('');
     setError(null);
@@ -66,9 +62,7 @@ export const CategoriesAdminPage: React.FC = () => {
   const openEditModal = (cat: Category) => {
     setEditingCategoryId(cat.id);
     setName(cat.name);
-    setSlug(cat.slug);
     setImageUrl(cat.image || '');
-    setSortOrder(cat.sortOrder || 1);
     setSubcategories(cat.subcategories ? JSON.parse(JSON.stringify(cat.subcategories)) : []);
     setNewSubName('');
     setError(null);
@@ -96,12 +90,13 @@ export const CategoriesAdminPage: React.FC = () => {
     if (!name.trim()) return;
     setError(null);
 
-    const generatedSlug = slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const generatedSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const currentCat = editingCategoryId ? categories.find((c) => c.id === editingCategoryId) : null;
     const payload = {
-      name,
-      slug: generatedSlug,
+      name: name.trim(),
+      slug: currentCat?.slug || generatedSlug,
       image: imageUrl,
-      sortOrder: Number(sortOrder) || 1,
+      sortOrder: currentCat?.sortOrder || categories.length + 1,
       isVisible: true,
       subcategories,
     };
@@ -284,27 +279,6 @@ export const CategoriesAdminPage: React.FC = () => {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Spices & Masalas"
                   className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Slug (optional)</label>
-                <input
-                  type="text"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  placeholder="e.g. spices-masalas"
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500 font-mono text-[11px]"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Sort Order</label>
-                <input
-                  type="number"
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(Number(e.target.value))}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500 font-bold"
                 />
               </div>
 

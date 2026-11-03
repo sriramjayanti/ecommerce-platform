@@ -74,7 +74,6 @@ export const ProductsAdminPage: React.FC = () => {
     ]);
     setProducts(pList);
     setCategories(cList);
-    if (cList[0] && !categoryId) setCategoryId(cList[0].id);
     setLoading(false);
   };
 
@@ -95,27 +94,23 @@ export const ProductsAdminPage: React.FC = () => {
     setTitle('');
     setDescription('');
     setBrand('');
-    setCategoryId(categories[0]?.id || 'cat-staples');
+    setCategoryId('');
     setSubcategoryId('');
     setImageUrl(PRESET_IMAGES[0].url);
-    setIsWholesaleEnabled(true);
+    setIsWholesaleEnabled(false);
     setIsFeatured(false);
     setIsBestSeller(false);
     setVariants([
       {
         id: `var-${Date.now()}`,
-        name: '1 kg Pack',
+        name: 'Standard Pack',
         sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
-        weightOrSize: '1 kg',
-        mrp: 150,
-        basePrice: 120,
-        stock: 100,
-        lowStockThreshold: 15,
-        pricingTiers: [
-          { id: 't1', minQty: 1, maxQty: 4, unitPrice: 120, label: 'Retail (1–4 units)' },
-          { id: 't2', minQty: 5, maxQty: 9, unitPrice: 112, label: 'Bulk Pack (5–9 units)' },
-          { id: 't3', minQty: 10, maxQty: null, unitPrice: 105, label: 'Wholesale Slab (10+ units)' },
-        ],
+        weightOrSize: '',
+        mrp: 0,
+        basePrice: 0,
+        stock: 0,
+        lowStockThreshold: 10,
+        pricingTiers: [],
         isDefault: true,
       },
     ]);
@@ -201,6 +196,11 @@ export const ProductsAdminPage: React.FC = () => {
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    if (!categoryId) {
+      setFormError('Please select a category from the dropdown.');
+      return;
+    }
 
     // Validate tier pricing on all variants if wholesale enabled
     if (isWholesaleEnabled) {
@@ -520,8 +520,10 @@ export const ProductsAdminPage: React.FC = () => {
                   <select
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
+                    required
                     className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-slate-900 outline-none focus:border-emerald-500 font-bold"
                   >
+                    <option value="">Select Category</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -656,23 +658,26 @@ export const ProductsAdminPage: React.FC = () => {
                         <label className="block text-[11px] text-slate-600 font-bold mb-1">MRP (₹)</label>
                         <input
                           type="number"
-                          value={v.mrp}
+                          value={v.mrp === 0 ? '' : v.mrp}
+                          placeholder="0"
                           onChange={(e) => {
                             const updated = [...variants];
-                            updated[vIdx].mrp = Number(e.target.value);
+                            updated[vIdx].mrp = e.target.value === '' ? 0 : Number(e.target.value);
                             setVariants(updated);
                           }}
                           className="w-full rounded-lg border border-slate-300 bg-white p-2 text-slate-900 font-bold"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-600 font-bold mb-1">Base Price (₹)</label>
+                        <label className="block text-[11px] text-slate-600 font-bold mb-1">Base Price (₹) *</label>
                         <input
                           type="number"
-                          value={v.basePrice}
+                          required
+                          value={v.basePrice === 0 ? '' : v.basePrice}
+                          placeholder="0"
                           onChange={(e) => {
                             const updated = [...variants];
-                            updated[vIdx].basePrice = Number(e.target.value);
+                            updated[vIdx].basePrice = e.target.value === '' ? 0 : Number(e.target.value);
                             setVariants(updated);
                           }}
                           className="w-full rounded-lg border border-slate-300 bg-white p-2 text-emerald-700 font-bold"
@@ -682,10 +687,11 @@ export const ProductsAdminPage: React.FC = () => {
                         <label className="block text-[11px] text-slate-600 font-bold mb-1">Stock Count</label>
                         <input
                           type="number"
-                          value={v.stock}
+                          value={v.stock === 0 ? '' : v.stock}
+                          placeholder="0"
                           onChange={(e) => {
                             const updated = [...variants];
-                            updated[vIdx].stock = Number(e.target.value);
+                            updated[vIdx].stock = e.target.value === '' ? 0 : Number(e.target.value);
                             setVariants(updated);
                           }}
                           className="w-full rounded-lg border border-slate-300 bg-white p-2 text-slate-900 font-bold"

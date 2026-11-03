@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAdminUrl } from '@ecommerce/shared';
+import { getAdminUrl, dataStore } from '@ecommerce/shared';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -31,17 +31,23 @@ export const Header: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const navigate = useNavigate();
 
-  const fetchCategories = () => {
-    fetch('/api/categories')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) setCategories(d.data);
-      })
-      .catch(() => {});
+  const fetchCategories = async () => {
+    try {
+      const cats = await dataStore.getCategories();
+      if (Array.isArray(cats)) setCategories(cats);
+    } catch {}
   };
 
   useEffect(() => {
     fetchCategories();
+
+    const unsub = dataStore.subscribe((event) => {
+      if (event.type === 'categories_updated') {
+        fetchCategories();
+      }
+    });
+
+    return () => unsub();
   }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {

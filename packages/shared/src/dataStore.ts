@@ -78,6 +78,26 @@ function safeRemoveItem(key: string): void {
   delete memoryStorage[key];
 }
 
+/**
+ * Recursively strips undefined keys and nested undefined values
+ * so Firestore setDoc never throws: "Unsupported field value: undefined"
+ */
+function cleanForFirestore<T>(data: T): T {
+  if (data === undefined) return null as any;
+  if (data === null || typeof data !== 'object') return data;
+  if (data instanceof Date) return data;
+  if (Array.isArray(data)) {
+    return data.map((item) => cleanForFirestore(item)) as any;
+  }
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      clean[key] = cleanForFirestore(value);
+    }
+  }
+  return clean as T;
+}
+
 class UnifiedDataStore {
   private channel: BroadcastChannel | null = null;
   private listeners: Set<(event: SyncMessage) => void> = new Set();
@@ -174,6 +194,28 @@ class UnifiedDataStore {
           });
         }, (err) => {
           console.warn('Firestore products onSnapshot error:', err);
+        });
+
+        // Real-time Banners Listener (Instantly syncs Admin -> Customer across domains)
+        const bannersCol = collection(firestore, 'banners');
+        onSnapshot(bannersCol, (snapshot) => {
+          const remoteBans: Banner[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as Banner;
+            if (data && data.id) {
+              remoteBans.push(data);
+            }
+          });
+          remoteBans.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+          if (remoteBans.length > 0) {
+            safeSetItem('dailyfresh_banners', JSON.stringify(remoteBans));
+            this.notifyListeners({
+              type: 'banners_updated',
+              timestamp: Date.now(),
+            });
+          }
+        }, (err) => {
+          console.warn('Firestore banners onSnapshot error:', err);
         });
       } catch (err) {
         console.warn('Could not initialize Firestore onSnapshot listeners:', err);
@@ -345,7 +387,7 @@ class UnifiedDataStore {
         categoryId: productData.categoryId || '',
         subcategoryId: productData.subcategoryId || '',
         brand: productData.brand || 'DailyFresh',
-        badge: productData.badge,
+        badge: productData.badge || null,
         deliveryTag: productData.deliveryTag || '⚡ FREE Delivery by Tomorrow 8 PM',
         images: productData.images && productData.images.length > 0 ? productData.images : ['https://images.unsplash.com/photo-1542838132-92c53300491e?w=700'],
         isWholesaleEnabled: productData.isWholesaleEnabled !== undefined ? productData.isWholesaleEnabled : true,
@@ -364,7 +406,8 @@ class UnifiedDataStore {
     this.broadcast('products_updated', saved);
 
     if (typeof window !== 'undefined' && firestore) {
-      setDoc(doc(firestore, 'products', saved.id), saved).catch((err) => {
+      const cleanDoc = cleanForFirestore(saved);
+      setDoc(doc(firestore, 'products', saved.id), cleanDoc).catch((err) => {
         console.warn('Firestore setDoc product error:', err);
       });
     }
@@ -483,7 +526,8 @@ class UnifiedDataStore {
     this.broadcast('categories_updated', saved);
 
     if (typeof window !== 'undefined' && firestore) {
-      setDoc(doc(firestore, 'categories', saved.id), saved).catch((err) => {
+      const cleanDoc = cleanForFirestore(saved);
+      setDoc(doc(firestore, 'categories', saved.id), cleanDoc).catch((err) => {
         console.warn('Firestore setDoc category error:', err);
       });
     }
@@ -886,7 +930,7 @@ class UnifiedDataStore {
     // Save order directly to Cloud Firestore so Admin Portal receives it in real time
     if (typeof window !== 'undefined' && firestore) {
       try {
-        await setDoc(doc(firestore, 'orders', order.id), order);
+        await setDoc(doc(firestore, 'orders', order.id), cleanForFirestore(order));
         // Also register/update customer in users collection
         if (payload.userId) {
           await setDoc(
@@ -1036,61 +1080,110 @@ class UnifiedDataStore {
 
   // ------------------- BANNERS -------------------
   public async getBanners(): Promise<Banner[]> {
+    let localBanners: Banner[] = [];
+    try {
+      const raw = safeGetItem('dailyfresh_banners');
+      if (raw) localBanners = JSON.parse(raw);
+    } catch {}
+
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        const snap = await getDocs(collection(firestore, 'banners'));
+        const remoteBans: Banner[] = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data() as Banner;
+          if (data && data.id) {
+            remoteBans.push(data);
+          }
+        });
+        remoteBans.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        if (remoteBans.length > 0 || localBanners.length === 0) {
+          safeSetItem('dailyfresh_banners', JSON.stringify(remoteBans));
+          return remoteBans;
+        }
+      } catch (err) {
+        console.warn('Firestore getBanners error:', err);
+      }
+    }
+
     const apiRes = await this.safeApiFetch<{ success: boolean; data: Banner[] }>('/api/banners');
     if (apiRes && apiRes.success && Array.isArray(apiRes.data)) {
       safeSetItem('dailyfresh_banners', JSON.stringify(apiRes.data));
       return apiRes.data;
     }
 
-    try {
-      const raw = safeGetItem('dailyfresh_banners');
-      if (raw) return JSON.parse(raw);
-    } catch {}
-
-    return INITIAL_BANNERS;
+    return localBanners.length > 0 ? localBanners : INITIAL_BANNERS;
   }
 
   public async saveBanner(bannerData: Partial<Banner>): Promise<{ success: boolean; data: Banner }> {
     const isEdit = !!bannerData.id;
-    const url = isEdit ? `/api/banners/${bannerData.id}` : '/api/admin/banners';
-    const method = isEdit ? 'PUT' : 'POST';
-
-    await this.safeApiFetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bannerData),
-    });
-
     const banners = await this.getBanners();
     let saved: Banner;
 
     if (isEdit) {
       const idx = banners.findIndex((b) => b.id === bannerData.id);
-      saved = { ...banners[idx], ...bannerData } as Banner;
-      if (idx !== -1) banners[idx] = saved;
+      saved = {
+        title: 'Special Promotion',
+        imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200',
+        linkUrl: '/',
+        sortOrder: 1,
+        isActive: true,
+        ...(idx !== -1 ? banners[idx] : {}),
+        ...bannerData,
+      } as Banner;
+      if (idx !== -1) {
+        banners[idx] = saved;
+      } else {
+        banners.push(saved);
+      }
     } else {
       saved = {
         id: `ban-${Date.now()}`,
         title: bannerData.title || 'Special Promotion',
+        subtitle: bannerData.subtitle || '',
         imageUrl: bannerData.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200',
-        sortOrder: banners.length + 1,
-        isActive: true,
-        ...bannerData,
-      } as Banner;
+        linkUrl: bannerData.linkUrl || '/',
+        sortOrder: bannerData.sortOrder !== undefined ? bannerData.sortOrder : banners.length + 1,
+        isActive: bannerData.isActive !== undefined ? bannerData.isActive : true,
+      };
       banners.push(saved);
     }
 
+    banners.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     safeSetItem('dailyfresh_banners', JSON.stringify(banners));
     this.broadcast('banners_updated', saved);
+
+    if (typeof window !== 'undefined' && firestore) {
+      const cleanDoc = cleanForFirestore(saved);
+      setDoc(doc(firestore, 'banners', saved.id), cleanDoc).catch((err) => {
+        console.warn('Firestore setDoc banner error:', err);
+      });
+    }
+
+    const url = isEdit ? `/api/banners/${bannerData.id}` : '/api/admin/banners';
+    const method = isEdit ? 'PUT' : 'POST';
+    this.safeApiFetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(saved),
+    }).catch(() => {});
+
     return { success: true, data: saved };
   }
 
   public async deleteBanner(id: string): Promise<{ success: boolean }> {
-    await this.safeApiFetch(`/api/banners/${id}`, { method: 'DELETE' });
     const banners = await this.getBanners();
     const filtered = banners.filter((b) => b.id !== id);
     safeSetItem('dailyfresh_banners', JSON.stringify(filtered));
     this.broadcast('banners_updated', { id });
+
+    if (typeof window !== 'undefined' && firestore) {
+      deleteDoc(doc(firestore, 'banners', id)).catch((err) => {
+        console.warn('Firestore deleteDoc banner error:', err);
+      });
+    }
+
+    this.safeApiFetch(`/api/banners/${id}`, { method: 'DELETE' }).catch(() => {});
     return { success: true };
   }
 

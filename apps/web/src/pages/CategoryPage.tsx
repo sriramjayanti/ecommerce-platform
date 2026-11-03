@@ -4,12 +4,9 @@ import { Product, Category, INITIAL_PRODUCTS, INITIAL_CATEGORIES, dataStore } fr
 import { ProductCard } from '../components/ProductCard';
 import {
   Filter,
-  SlidersHorizontal,
   ChevronRight,
   Package,
   Zap,
-  Star,
-  Check,
   ArrowLeft,
 } from 'lucide-react';
 
@@ -24,8 +21,6 @@ export const CategoryPage: React.FC = () => {
   const [currentCategory, setCurrentCategory] = useState<Category | null>(initialCat);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
   const [wholesaleOnly, setWholesaleOnly] = useState<boolean>(false);
-  const [minRating, setMinRating] = useState<number>(0);
-  const [priceMax, setPriceMax] = useState<number>(100000);
   const [sortBy, setSortBy] = useState<string>('popular');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -60,9 +55,7 @@ export const CategoryPage: React.FC = () => {
     if (!isCategoryMatch) return false;
     if (selectedSubcategory !== 'all' && p.subcategoryId !== selectedSubcategory) return false;
     if (wholesaleOnly && !p.isWholesaleEnabled) return false;
-    if (minRating > 0 && (p.rating || 0) < minRating) return false;
-    const basePrice = p.variants[0]?.basePrice || 0;
-    if (basePrice > priceMax) return false;
+
     return true;
   });
 
@@ -160,19 +153,17 @@ export const CategoryPage: React.FC = () => {
         {/* Main 2-Column Layout: Sidebar Filters + Products Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           
-          {/* Amazon-Style Left Filter Sidebar */}
+          {/* Left Filter Sidebar */}
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs space-y-6 text-xs text-slate-800">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-1.5 font-black text-sm text-slate-900">
-                <Filter className="h-4 w-4 text-amber-500" />
+                <Filter className="h-4 w-4 text-emerald-600" />
                 <span>Filters</span>
               </div>
               <button
                 onClick={() => {
                   setSelectedSubcategory('all');
                   setWholesaleOnly(false);
-                  setMinRating(0);
-                  setPriceMax(50000);
                 }}
                 className="text-[11px] font-bold text-amber-600 hover:underline"
               >
@@ -190,53 +181,13 @@ export const CategoryPage: React.FC = () => {
                   type="checkbox"
                   checked={wholesaleOnly}
                   onChange={(e) => setWholesaleOnly(e.target.checked)}
-                  className="h-4 w-4 rounded text-amber-500"
+                  className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500"
                 />
                 <span className="font-bold text-slate-700 flex items-center gap-1">
                   <Zap className="h-3 w-3 fill-amber-500 text-amber-600" />
                   Wholesale Slabs Active
                 </span>
               </label>
-            </div>
-
-            {/* Price Filter Slider */}
-            <div className="space-y-2 border-t border-slate-100 pt-4">
-              <div className="flex justify-between font-bold text-[11px]">
-                <span className="uppercase tracking-wider text-slate-900">Max Price</span>
-                <span className="text-amber-600">₹{priceMax.toLocaleString('en-IN')}</span>
-              </div>
-              <input
-                type="range"
-                min={100}
-                max={50000}
-                step={100}
-                value={priceMax}
-                onChange={(e) => setPriceMax(Number(e.target.value))}
-                className="w-full accent-amber-500 cursor-pointer"
-              />
-            </div>
-
-            {/* Customer Rating Filter */}
-            <div className="space-y-2 border-t border-slate-100 pt-4">
-              <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
-                Customer Rating
-              </span>
-              <div className="space-y-1">
-                {[4, 3, 2].map((stars) => (
-                  <button
-                    key={stars}
-                    onClick={() => setMinRating(minRating === stars ? 0 : stars)}
-                    className={`w-full flex items-center justify-between p-1.5 rounded-lg text-left transition ${
-                      minRating === stars ? 'bg-amber-50 font-bold text-slate-950' : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="flex items-center gap-1">
-                      {stars}★ & above
-                    </span>
-                    {minRating === stars && <Check className="h-3.5 w-3.5 text-amber-600" />}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -275,7 +226,7 @@ export const CategoryPage: React.FC = () => {
               <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center">
                 <Package className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                 <h3 className="text-base font-bold text-slate-800">No products matching filters</h3>
-                <p className="text-xs text-slate-500 mt-1">Try resetting price or rating filters.</p>
+                <p className="text-xs text-slate-500 mt-1">Try selecting a different subcategory.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

@@ -35,7 +35,9 @@ export const HeroDealsCarousel: React.FC<HeroDealsCarouselProps> = ({ banners })
   const autoplaySpeed = Number(animationConfig?.interval) || 5000;
   const isAutoplayEnabled = animationConfig?.autoplay !== false;
 
-  const activeBanners = banners.filter((b) => b.isActive);
+  const activeBanners = [...banners]
+    .filter((b) => b.isActive)
+    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
   useEffect(() => {
     if (activeBanners.length <= 1 || isPaused || !isAutoplayEnabled) return;
