@@ -9,6 +9,7 @@ export interface UserProfile {
   isBlocked: boolean;
   createdAt: string;
   lastLoginAt?: string;
+  updatedAt?: string;
 }
 
 export interface Address {

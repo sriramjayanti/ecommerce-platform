@@ -6,8 +6,6 @@ interface AdminAuthContextType {
   token: string | null;
   login: (email: string, role?: UserRole, displayName?: string) => Promise<boolean>;
   logout: () => void;
-  resetDemoData: () => Promise<boolean>;
-  isSeeding: boolean;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
@@ -20,22 +18,12 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return JSON.parse(saved);
       } catch {}
     }
-    // Default logged in as Super Admin for instant convenience
-    return {
-      id: 'user-admin-1',
-      email: 'admin@dailyfreshmart.com',
-      displayName: 'Super Admin',
-      role: 'super_admin',
-      isBlocked: false,
-      createdAt: new Date().toISOString(),
-    };
+    return null;
   });
 
   const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('dailyfresh_admin_token') || 'demo_super_admin_token';
+    return localStorage.getItem('dailyfresh_admin_token') || null;
   });
-
-  const [isSeeding, setIsSeeding] = useState(false);
 
   useEffect(() => {
     if (adminUser) {
@@ -74,19 +62,6 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setToken(null);
   };
 
-  const resetDemoData = async (): Promise<boolean> => {
-    setIsSeeding(true);
-    try {
-      const res = await fetch('/api/admin/seed', { method: 'POST' });
-      const data = await res.json();
-      return !!data.success;
-    } catch {
-      return false;
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
   return (
     <AdminAuthContext.Provider
       value={{
@@ -94,8 +69,6 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         token,
         login,
         logout,
-        resetDemoData,
-        isSeeding,
       }}
     >
       {children}

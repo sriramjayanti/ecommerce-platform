@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import {
   LogIn,
   Store,
@@ -12,12 +13,12 @@ import {
   Sparkles,
   Phone,
   User,
-  Heart,
   ShoppingBag,
 } from 'lucide-react';
 
 export const CustomerLoginPage: React.FC = () => {
   const { user, login } = useAuth();
+  const { totals, setDrawerOpen } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -55,11 +56,6 @@ export const CustomerLoginPage: React.FC = () => {
       </div>
     );
   }
-
-  const handleQuickLogin = (phone: string, name: string) => {
-    login(phone, name);
-    navigate('/');
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,32 +166,6 @@ export const CustomerLoginPage: React.FC = () => {
               </p>
             </div>
 
-            {/* 1-Click Quick Demo Customer Buttons */}
-            <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200 space-y-2.5">
-              <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">
-                ⚡ 1-Click Demo Customer Access
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('+919812345678', 'Rahul Sharma')}
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-left hover:border-amber-400 hover:shadow-xs text-xs font-bold text-slate-800 transition flex flex-col justify-between"
-                >
-                  <span className="font-extrabold text-slate-900">Rahul Sharma</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Retail Consumer • Bengaluru</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('+919834567890', 'Amit Verma')}
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-left hover:border-amber-400 hover:shadow-xs text-xs font-bold text-slate-800 transition flex flex-col justify-between"
-                >
-                  <span className="font-extrabold text-slate-900">Amit Verma</span>
-                  <span className="text-[10px] text-emerald-700 font-bold">Wholesale Kirana Buyer</span>
-                </button>
-              </div>
-            </div>
-
             {/* Manual Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -243,6 +213,33 @@ export const CustomerLoginPage: React.FC = () => {
                 <span>{loading ? 'Signing In...' : 'Continue to Shopping'}</span>
               </button>
             </form>
+
+            {/* Cart Status */}
+            {totals.itemCount > 0 && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-400 text-slate-950 font-black">
+                    <ShoppingBag className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-slate-900 block leading-tight">
+                      {totals.itemCount} Item(s) in Cart (₹{totals.finalTotal.toLocaleString('en-IN')})
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Ready for checkout
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setDrawerOpen(true)}
+                  className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 text-xs font-bold transition shadow-2xs"
+                >
+                  Open Cart
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">

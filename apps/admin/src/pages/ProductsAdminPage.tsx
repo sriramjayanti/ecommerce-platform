@@ -248,13 +248,23 @@ export const ProductsAdminPage: React.FC = () => {
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm('Are you sure you want to archive this product?')) return;
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    const previous = [...products];
+    // Optimistic instant update
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+
     try {
-      await dataStore.deleteProduct(id);
-      setSuccessMsg('Product archived successfully');
-      setTimeout(() => setSuccessMsg(null), 3000);
-      fetchCatalog();
-    } catch {}
+      const res = await dataStore.deleteProduct(id);
+      if (!res.success) {
+        setProducts(previous);
+        alert(res.error || 'Failed to delete product');
+      } else {
+        setSuccessMsg('Product deleted successfully');
+        setTimeout(() => setSuccessMsg(null), 2500);
+      }
+    } catch {
+      setProducts(previous);
+    }
   };
 
   const filteredProducts = products.filter((p) => {

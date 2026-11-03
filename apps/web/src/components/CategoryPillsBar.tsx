@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Category } from '@ecommerce/shared';
-import { Zap, Sparkles } from 'lucide-react';
+import { Zap, Sparkles, LayoutGrid } from 'lucide-react';
 
 interface CategoryPillsBarProps {
   categories: Category[];
@@ -13,6 +13,23 @@ export const CategoryPillsBar: React.FC<CategoryPillsBarProps> = ({ categories }
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between gap-4 sm:gap-6 overflow-x-auto scrollbar-none pb-1">
           
+          {/* All Categories Circular Pill - Opens Hamburger Menu Drawer */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-category-drawer'))}
+            className="flex flex-col items-center flex-shrink-0 group cursor-pointer"
+            aria-label="Open Categories Menu"
+          >
+            <div className="h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-md group-hover:scale-105 transition duration-300">
+              <div className="h-full w-full rounded-full bg-slate-950 flex flex-col items-center justify-center text-emerald-400">
+                <LayoutGrid className="h-6 w-6 stroke-[2.2px]" />
+              </div>
+            </div>
+            <span className="text-[11px] sm:text-xs font-black text-slate-800 mt-1.5 group-hover:text-emerald-600 transition tracking-tight">
+              Categories
+            </span>
+          </button>
+
           {/* Top Deals Circular Pill */}
           <Link
             to="/?badge=Deal+of+the+Day"

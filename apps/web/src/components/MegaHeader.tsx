@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { dataStore, Product } from '@ecommerce/shared';
+import { dataStore, Product, getAdminUrl } from '@ecommerce/shared';
 import {
   Search,
   ShoppingBag,
@@ -45,6 +45,8 @@ export const MegaHeader: React.FC = () => {
   const { totals, wishlistIds, setDrawerOpen, settings } = useCart();
   const { user, login, logout, addresses, defaultAddress } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isLoginScreen = location.pathname === '/login';
 
   // Search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,18 +57,26 @@ export const MegaHeader: React.FC = () => {
 
   // Modals & Drawers
   const [isMegaMenuOpen, setMegaMenuOpen] = useState(false);
-  const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isLocationModalOpen, setLocationModalOpen] = useState(false);
   const [isAccountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const [isDrawerCategoriesExpanded, setIsDrawerCategoriesExpanded] = useState(true);
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
 
-  // Pincode & Login
+  // Pincode
   const [pincode, setPincode] = useState('560034');
   const [pincodeCity, setPincodeCity] = useState('Bengaluru');
-  const [loginPhone, setLoginPhone] = useState('');
-  const [loginName, setLoginName] = useState('');
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Listen for category drawer open trigger from BottomNav or elsewhere
+  useEffect(() => {
+    const handleOpenCategoryDrawer = () => {
+      setMegaMenuOpen(true);
+      setIsDrawerCategoriesExpanded(true);
+    };
+    window.addEventListener('open-category-drawer', handleOpenCategoryDrawer);
+    return () => window.removeEventListener('open-category-drawer', handleOpenCategoryDrawer);
+  }, []);
 
   useEffect(() => {
     // Load categories
@@ -154,11 +164,6 @@ export const MegaHeader: React.FC = () => {
     }
   };
 
-  const handleQuickLogin = (phone: string, name: string) => {
-    login(phone, name);
-    setLoginModalOpen(false);
-  };
-
   return (
     <>
       {/* 1. TOP UTILITY STRIP */}
@@ -195,7 +200,7 @@ export const MegaHeader: React.FC = () => {
               <span>Track Order</span>
             </Link>
             <a
-              href="http://localhost:5174"
+              href={getAdminUrl()}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-0.5 font-extrabold transition shadow-xs"
@@ -448,14 +453,13 @@ export const MegaHeader: React.FC = () => {
                     </div>
                   </Link>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setLoginModalOpen(true)}
+                  <Link
+                    to="/login"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white transition text-xs font-bold"
                   >
                     <User className="h-4 w-4 text-amber-400" />
-                    <span className="hidden sm:inline">Sign In</span>
-                  </button>
+                    <span className="hidden sm:inline">Customer Login</span>
+                  </Link>
                 )}
               </div>
 
@@ -495,51 +499,12 @@ export const MegaHeader: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. SECONDARY CATEGORIES STRIP */}
-        <div className="bg-slate-950 border-t border-slate-800 overflow-x-auto scrollbar-none">
-          <div className="max-w-7xl mx-auto px-4 flex items-center gap-6 py-2 text-xs font-bold text-slate-300 whitespace-nowrap">
-            
-            {/* All Categories Trigger */}
-            <button
-              type="button"
-              onClick={() => {
-                setMegaMenuOpen(true);
-                setIsDrawerCategoriesExpanded(true);
-              }}
-              className="flex items-center gap-1.5 text-white hover:text-amber-400 transition"
-            >
-              <Menu className="h-4 w-4 text-amber-400" />
-              <span>All Categories</span>
-            </button>
-
-            {/* Flash Deals Link */}
-            <Link to="/?badge=Deal+of+the+Day" className="flex items-center gap-1 text-amber-400 hover:underline">
-              <Zap className="h-3.5 w-3.5 fill-amber-400" />
-              <span>Lightning Deals</span>
-            </Link>
-
-            {/* Department Shortcuts */}
-            {categories.map((cat) => (
-              <Link
-                key={cat.id}
-                to={`/category/${cat.slug || cat.id}`}
-                className="hover:text-white transition"
-              >
-                {cat.name}
-              </Link>
-            ))}
-
-            <Link to="/?wholesale=true" className="text-emerald-400 hover:underline flex items-center gap-1">
-              <span>Wholesale Bulk Store</span>
-            </Link>
-          </div>
-        </div>
       </header>
 
-      {/* 4. HAMBURGER MENU DRAWER (ON LEFT OF PAGE) */}
+      {/* 4. HAMBURGER MENU DRAWER (SLIDE-OVER ON LEFT) */}
       {isMegaMenuOpen && (
         <div className="fixed inset-0 z-50 flex animate-in fade-in duration-200">
-          <div className="w-84 max-w-[85vw] bg-white text-slate-900 h-full overflow-y-auto shadow-2xl flex flex-col justify-between">
+          <div className="w-96 max-w-[90vw] bg-white text-slate-900 h-full overflow-y-auto shadow-2xl flex flex-col justify-between">
             <div>
               {/* Drawer Header with User Profile / Login */}
               <div className="bg-slate-950 text-white p-5 flex items-center justify-between border-b border-slate-800">
@@ -551,16 +516,24 @@ export const MegaHeader: React.FC = () => {
                     <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">
                       {user ? 'Welcome Back,' : 'Hello, Guest'}
                     </span>
-                    <span className="font-extrabold text-sm block truncate max-w-[170px]">
-                      {user ? user.displayName || user.phone : 'Sign in to DailyMart'}
+                    <span className="font-extrabold text-sm block truncate max-w-[190px]">
+                      {user ? user.displayName || user.phone : 'DailyMart Customer'}
                     </span>
-                    {user && (
+                    {user ? (
                       <Link
                         to="/account"
                         onClick={() => setMegaMenuOpen(false)}
-                        className="text-[11px] text-amber-400 font-bold hover:underline"
+                        className="text-[11px] text-amber-400 font-bold hover:underline block"
                       >
                         View Profile & Addresses →
+                      </Link>
+                    ) : (
+                      <Link
+                        to="/login"
+                        onClick={() => setMegaMenuOpen(false)}
+                        className="text-[11px] text-amber-400 font-bold hover:underline block"
+                      >
+                        Customer Login →
                       </Link>
                     )}
                   </div>
@@ -578,51 +551,106 @@ export const MegaHeader: React.FC = () => {
               {/* Drawer Navigation List */}
               <div className="p-4 space-y-4 text-xs font-semibold">
                 
-                {/* CATEGORIES SECTION (Interactive dropdown / accordion per request) */}
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsDrawerCategoriesExpanded(!isDrawerCategoriesExpanded)}
-                    className="w-full flex items-center justify-between font-black text-xs text-emerald-900 uppercase tracking-wider"
-                  >
-                    <span className="flex items-center gap-2">
+                {/* CATEGORIES SECTION (Category-wise expandable accordion with subcategories) */}
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between pb-2 border-b border-emerald-200/60">
+                    <span className="flex items-center gap-2 font-black text-xs text-emerald-950 uppercase tracking-wider">
                       <Layers className="h-4 w-4 text-emerald-700" />
                       <span>Shop by Category ({categories.length})</span>
                     </span>
-                    <ChevronDown
-                      className={`h-4 w-4 text-emerald-700 transition-transform ${
-                        isDrawerCategoriesExpanded ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsDrawerCategoriesExpanded(!isDrawerCategoriesExpanded)}
+                      className="text-[11px] font-bold text-emerald-700 hover:underline"
+                    >
+                      {isDrawerCategoriesExpanded ? 'Collapse' : 'Expand All'}
+                    </button>
+                  </div>
 
-                  {/* Expandable Category List */}
                   {isDrawerCategoriesExpanded && (
-                    <div className="mt-3 pt-3 border-t border-emerald-200/60 space-y-1.5 animate-in fade-in">
-                      {categories.map((cat) => (
-                        <Link
-                          key={cat.id}
-                          to={`/category/${cat.slug || cat.id}`}
-                          onClick={() => setMegaMenuOpen(false)}
-                          className="flex items-center justify-between p-2 rounded-xl bg-white border border-emerald-100 hover:border-emerald-300 hover:shadow-xs transition text-slate-800 font-bold"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            {cat.image ? (
-                              <img
-                                src={cat.image}
-                                alt=""
-                                className="h-7 w-7 rounded-lg object-cover"
-                              />
-                            ) : (
-                              <div className="h-7 w-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                                <Package className="h-3.5 w-3.5" />
+                    <div className="space-y-2 pt-1 animate-in fade-in">
+                      {categories.map((cat) => {
+                        const isCatExpanded = expandedCategoryId === cat.id;
+                        const subcats = cat.subcategories || [];
+                        return (
+                          <div
+                            key={cat.id}
+                            className="rounded-xl border border-emerald-100 bg-white overflow-hidden shadow-2xs hover:border-emerald-300 transition"
+                          >
+                            <div className="flex items-center justify-between p-2.5 hover:bg-slate-50 transition">
+                              <Link
+                                to={`/category/${cat.slug || cat.id}`}
+                                onClick={() => setMegaMenuOpen(false)}
+                                className="flex items-center gap-2.5 flex-1 min-w-0"
+                              >
+                                {cat.image ? (
+                                  <img
+                                    src={cat.image}
+                                    alt=""
+                                    className="h-8 w-8 rounded-lg object-cover flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                                    <Package className="h-4 w-4" />
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <span className="text-xs font-bold text-slate-900 block truncate">
+                                    {cat.name}
+                                  </span>
+                                  {subcats.length > 0 && (
+                                    <span className="text-[10px] text-slate-400 block font-medium">
+                                      {subcats.length} subcategories
+                                    </span>
+                                  )}
+                                </div>
+                              </Link>
+
+                              {subcats.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedCategoryId(isCatExpanded ? null : cat.id);
+                                  }}
+                                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-emerald-700 transition"
+                                  title={isCatExpanded ? 'Collapse subcategories' : 'View subcategories'}
+                                >
+                                  <ChevronDown
+                                    className={`h-4 w-4 transition-transform duration-200 ${
+                                      isCatExpanded ? 'rotate-180 text-emerald-600' : ''
+                                    }`}
+                                  />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Subcategories list when expanded */}
+                            {isCatExpanded && subcats.length > 0 && (
+                              <div className="bg-emerald-50/30 border-t border-emerald-100 p-2.5 space-y-1 animate-in fade-in">
+                                {subcats.map((sub: any) => (
+                                  <Link
+                                    key={sub.id}
+                                    to={`/category/${cat.slug || cat.id}?sub=${sub.slug || sub.id}`}
+                                    onClick={() => setMegaMenuOpen(false)}
+                                    className="flex items-center justify-between py-1.5 px-2.5 rounded-lg text-xs font-medium text-slate-700 hover:text-emerald-800 hover:bg-emerald-100/60 transition"
+                                  >
+                                    <span className="truncate">• {sub.name}</span>
+                                    <ChevronRight className="h-3 w-3 text-slate-400" />
+                                  </Link>
+                                ))}
+                                <Link
+                                  to={`/category/${cat.slug || cat.id}`}
+                                  onClick={() => setMegaMenuOpen(false)}
+                                  className="block py-1.5 px-2.5 text-[11px] font-bold text-emerald-700 hover:underline pt-1.5 border-t border-emerald-100"
+                                >
+                                  Explore All {cat.name} →
+                                </Link>
                               </div>
                             )}
-                            <span className="text-xs">{cat.name}</span>
                           </div>
-                          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-                        </Link>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -733,7 +761,7 @@ export const MegaHeader: React.FC = () => {
                     </a>
 
                     <a
-                      href="http://localhost:5174"
+                      href={getAdminUrl()}
                       target="_blank"
                       rel="noreferrer"
                       className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-slate-100 text-amber-700 font-bold transition"
@@ -764,17 +792,14 @@ export const MegaHeader: React.FC = () => {
                   <span>Log Out ({user.displayName || 'Customer'})</span>
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMegaMenuOpen(false);
-                    setLoginModalOpen(true);
-                  }}
+                <Link
+                  to="/login"
+                  onClick={() => setMegaMenuOpen(false)}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-400 hover:bg-amber-500 py-3 text-xs font-black text-slate-950 shadow-md transition"
                 >
                   <LogIn className="h-4 w-4" />
-                  <span>Sign In / Register</span>
-                </button>
+                  <span>Customer Login</span>
+                </Link>
               )}
             </div>
           </div>
@@ -869,123 +894,6 @@ export const MegaHeader: React.FC = () => {
         </div>
       )}
 
-      {/* 6. GROCERY-THEMED SIGN IN / LOGIN MODAL */}
-      {isLoginModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white overflow-hidden shadow-2xl text-slate-900 space-y-4 animate-in zoom-in-95 border border-slate-200">
-            
-            {/* Rich Grocery Image Header */}
-            <div className="relative bg-slate-950 min-h-[140px] flex items-end p-5 text-white overflow-hidden">
-              <img
-                src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80"
-                alt="Fresh grocery store produce"
-                className="absolute inset-0 h-full w-full object-cover opacity-45 scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent z-10" />
-
-              <button
-                type="button"
-                onClick={() => setLoginModalOpen(false)}
-                className="absolute top-3 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-slate-950/60 text-white hover:bg-slate-900"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              <div className="relative z-20 space-y-1">
-                <span className="inline-flex items-center gap-1 rounded bg-amber-400 text-slate-950 px-2 py-0.5 text-[10px] font-black uppercase">
-                  <Zap className="h-3 w-3 fill-slate-950" />
-                  Wholesale Groceries
-                </span>
-                <h3 className="font-black text-lg text-white">Sign In to DailyMart Prime</h3>
-                <p className="text-[11px] text-slate-300 font-medium">
-                  Farm-fresh produce & wholesale price slabs delivered to your doorstep.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-5 pt-0 space-y-4">
-              {/* Quick Demo Customer Buttons */}
-              <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200 space-y-2">
-                <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">
-                  ⚡ 1-Click Demo Customer Access
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('+919812345678', 'Rahul Sharma')}
-                    className="rounded-xl border border-slate-200 bg-white p-2 text-left hover:border-amber-400 text-xs font-bold text-slate-800 transition"
-                  >
-                    <span className="font-extrabold text-slate-900 block truncate">Rahul Sharma</span>
-                    <span className="text-[10px] text-slate-400 font-normal">Retail Consumer</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('+919834567890', 'Amit Verma')}
-                    className="rounded-xl border border-slate-200 bg-white p-2 text-left hover:border-amber-400 text-xs font-bold text-slate-800 transition"
-                  >
-                    <span className="font-extrabold text-slate-900 block truncate">Amit Verma</span>
-                    <span className="text-[10px] text-emerald-700 font-bold">Wholesale Buyer</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Form */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (loginPhone.trim()) {
-                    login(loginPhone, loginName || 'Valued Customer');
-                    setLoginModalOpen(false);
-                  }
-                }}
-                className="space-y-3"
-              >
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Your Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Rahul Sharma"
-                    value={loginName}
-                    onChange={(e) => setLoginName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs outline-none focus:border-amber-500 font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number or Email *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="9876543210 or email@domain.com"
-                    value={loginPhone}
-                    onChange={(e) => setLoginPhone(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs outline-none focus:border-amber-500 font-medium"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 py-3 text-xs font-black text-slate-950 shadow-md shadow-amber-400/20 transition flex items-center justify-center gap-2"
-                >
-                  <LogIn className="h-4 w-4" />
-                  <span>Continue to Shopping</span>
-                </button>
-              </form>
-
-              <div className="pt-2 text-center">
-                <Link
-                  to="/login"
-                  onClick={() => setLoginModalOpen(false)}
-                  className="text-[11px] font-bold text-emerald-700 hover:underline"
-                >
-                  Open Full Grocery Login Page →
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

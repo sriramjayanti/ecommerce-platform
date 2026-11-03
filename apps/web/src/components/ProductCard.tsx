@@ -51,7 +51,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Top Badges */}
         <div className="absolute top-0 left-0 z-10 flex flex-col gap-1">
           {product.badge ? (
-            <span className="rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white uppercase tracking-wider shadow-xs">
+            <span className="rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white uppercase tracking-wider shadow-xs truncate max-w-[110px]">
               {product.badge}
             </span>
           ) : discount > 15 ? (
@@ -110,13 +110,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Title */}
           <Link
             to={`/product/${product.slug || product.id}`}
-            className="block text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 hover:text-amber-600 transition"
+            className="block text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 break-words hover:text-amber-600 transition"
           >
             {product.title}
           </Link>
 
           {/* Star Ratings */}
-          <div className="flex items-center gap-1.5 mt-1.5">
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             <div className="flex items-center gap-0.5 rounded bg-emerald-700 px-1.5 py-0.5 text-[10px] font-black text-white">
               <span>{product.rating || 4.8}</span>
               <Star className="h-2.5 w-2.5 fill-white" />
@@ -129,17 +129,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Pricing Block (Amazon & Flipkart Bold Style) */}
         <div className="pt-2 border-t border-slate-100 space-y-1">
-          <div className="flex items-baseline gap-2">
-            <span className="text-base sm:text-lg font-black text-slate-950 font-sans">
+          <div className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap">
+            <span className="text-base sm:text-lg font-black text-slate-950 font-sans whitespace-nowrap">
               ₹{price.toLocaleString('en-IN')}
             </span>
             {mrp > price && (
-              <span className="text-xs text-slate-400 line-through">
+              <span className="text-xs text-slate-400 line-through whitespace-nowrap">
                 ₹{mrp.toLocaleString('en-IN')}
               </span>
             )}
             {discount > 0 && (
-              <span className="text-xs font-black text-emerald-600">
+              <span className="text-[11px] sm:text-xs font-black text-emerald-600 whitespace-nowrap">
                 {discount}% off
               </span>
             )}
@@ -148,24 +148,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Stock Availability Badge */}
           <div className="pt-0.5">
             {isOutOfStock ? (
-              <span className="inline-block rounded-md bg-rose-100 text-rose-700 px-2 py-0.5 text-[10px] font-extrabold uppercase">
+              <span className="inline-block rounded-md bg-rose-100 text-rose-700 px-2 py-0.5 text-[10px] font-extrabold uppercase truncate max-w-full">
                 Out of Stock
               </span>
             ) : isLowStock ? (
-              <span className="inline-block rounded-md bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-extrabold">
+              <span className="inline-block rounded-md bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-extrabold truncate max-w-full">
                 Only {stock} left in stock!
               </span>
             ) : (
-              <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-extrabold">
+              <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-extrabold truncate max-w-full">
                 In Stock ({stock} available)
               </span>
             )}
           </div>
 
           {/* Prime Fast Delivery Tag */}
-          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-            <Truck className="h-3 w-3 text-emerald-600" />
-            <span>{product.deliveryTag || 'FREE Delivery by Tomorrow'}</span>
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-600 flex items-center gap-1 truncate">
+            <Truck className="h-3 w-3 text-emerald-600 flex-shrink-0" />
+            <span className="truncate">{product.deliveryTag || 'FREE Delivery by Tomorrow'}</span>
           </p>
 
           {/* Add to Cart CTA Button */}

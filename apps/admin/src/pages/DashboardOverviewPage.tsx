@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAdminAuth } from '../context/AdminAuthContext';
 import { dataStore } from '@ecommerce/shared';
 import {
   TrendingUp,
@@ -9,14 +8,9 @@ import {
   AlertTriangle,
   DollarSign,
   ArrowRight,
-  Database,
-  Truck,
-  Package,
-  Layers,
 } from 'lucide-react';
 
 export const DashboardOverviewPage: React.FC = () => {
-  const { resetDemoData, isSeeding } = useAdminAuth();
   const [metrics, setMetrics] = useState<any>({
     totalRevenue: 0,
     totalOrders: 0,
@@ -71,18 +65,6 @@ export const DashboardOverviewPage: React.FC = () => {
             Real-time metrics, wholesale conversions, inventory alerts, and synchronized customer orders.
           </p>
         </div>
-
-        <button
-          onClick={async () => {
-            await resetDemoData();
-            loadDashboardData();
-          }}
-          disabled={isSeeding}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 transition shadow-2xs self-start sm:self-auto"
-        >
-          <Database className={`h-4 w-4 ${isSeeding ? 'animate-spin' : 'text-emerald-600'}`} />
-          <span>{isSeeding ? 'Dumping...' : 'Dump / Reset Demo Data'}</span>
-        </button>
       </div>
 
       {/* KPI Cards Grid */}

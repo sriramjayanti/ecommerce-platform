@@ -13,6 +13,19 @@ import { FeatureTogglesPage } from './pages/FeatureTogglesPage';
 import { ReviewsModerationPage } from './pages/ReviewsModerationPage';
 import { BannersAdminPage } from './pages/BannersAdminPage';
 import { ReportsAdminPage } from './pages/ReportsAdminPage';
+import { getStorefrontUrl } from '@ecommerce/shared';
+
+const StoreRedirect: React.FC = () => {
+  React.useEffect(() => {
+    window.location.href = getStorefrontUrl();
+  }, []);
+  return (
+    <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center space-y-3">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+      <p className="text-sm font-bold text-slate-700">Opening Customer Storefront...</p>
+    </div>
+  );
+};
 
 function AdminLayout() {
   const { adminUser } = useAdminAuth();
@@ -37,6 +50,8 @@ function AdminLayout() {
             <Route path="/features" element={<FeatureTogglesPage />} />
             <Route path="/reviews" element={<ReviewsModerationPage />} />
             <Route path="/banners" element={<BannersAdminPage />} />
+            <Route path="/store" element={<StoreRedirect />} />
+            <Route path="/shop" element={<StoreRedirect />} />
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -50,7 +65,11 @@ export function App() {
   return (
     <BrowserRouter>
       <AdminAuthProvider>
-        <AdminLayout />
+        <Routes>
+          <Route path="/store" element={<StoreRedirect />} />
+          <Route path="/shop" element={<StoreRedirect />} />
+          <Route path="/*" element={<AdminLayout />} />
+        </Routes>
       </AdminAuthProvider>
     </BrowserRouter>
   );

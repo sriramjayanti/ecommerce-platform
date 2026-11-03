@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { getAdminUrl } from '@ecommerce/shared';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -28,8 +29,6 @@ export const Header: React.FC = () => {
   const [loginPhone, setLoginPhone] = useState('');
   const [loginName, setLoginName] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [seedNotice, setSeedNotice] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const fetchCategories = () => {
@@ -62,29 +61,6 @@ export const Header: React.FC = () => {
     }
   };
 
-  const handleQuickDemoLogin = (phone: string, name: string) => {
-    login(phone, name);
-    setLoginModalOpen(false);
-  };
-
-  const handleSeedDemoData = async () => {
-    setIsSeeding(true);
-    setSeedNotice(null);
-    try {
-      const res = await fetch('/api/admin/seed', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        setSeedNotice('24+ Products, 10 Categories & 12 Orders reloaded!');
-        fetchCategories();
-        setTimeout(() => {
-          setSeedNotice(null);
-          window.location.reload();
-        }, 1200);
-      }
-    } catch {}
-    setIsSeeding(false);
-  };
-
   return (
     <>
       {/* Top Banner Notice */}
@@ -107,20 +83,9 @@ export const Header: React.FC = () => {
               </a>
             )}
 
-            {/* Quick Demo Reset Trigger */}
-            <button
-              onClick={handleSeedDemoData}
-              disabled={isSeeding}
-              className="inline-flex items-center gap-1 rounded-md bg-emerald-900/80 hover:bg-emerald-800 px-2 py-0.5 text-[11px] font-bold text-emerald-300 transition"
-              title="Reload comprehensive demo products, categories, orders and wholesale slabs"
-            >
-              <Database className={`h-3 w-3 ${isSeeding ? 'animate-spin' : ''}`} />
-              <span>{isSeeding ? 'Dumping...' : 'Dump Demo Data'}</span>
-            </button>
-
             {/* Admin Panel Direct Link */}
             <a
-              href="http://localhost:5174"
+              href={getAdminUrl()}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 rounded bg-amber-500 hover:bg-amber-400 px-2.5 py-0.5 text-[11px] font-black text-slate-950 transition shadow-xs"
@@ -131,12 +96,6 @@ export const Header: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {seedNotice && (
-        <div className="bg-emerald-600 text-white text-xs font-bold py-1.5 px-4 text-center">
-          ✓ {seedNotice}
-        </div>
-      )}
 
       {/* Main Header */}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-2xs">
@@ -296,31 +255,7 @@ export const Header: React.FC = () => {
               </button>
             </div>
 
-            {/* Quick Demo Customer Buttons */}
-            <div className="rounded-2xl bg-slate-50 p-3 border border-slate-200 space-y-2">
-              <span className="text-[10px] font-bold uppercase text-slate-500 block">
-                1-Click Demo Customer Login
-              </span>
-              <div className="grid grid-cols-1 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoLogin('+919812345678', 'Rahul Sharma')}
-                  className="rounded-xl border border-slate-200 bg-white p-2 text-left hover:border-emerald-500 text-xs font-bold text-slate-800 transition flex justify-between items-center"
-                >
-                  <span>Rahul Sharma</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Bangalore</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoLogin('+919834567890', 'Amit Verma (Catering)')}
-                  className="rounded-xl border border-slate-200 bg-white p-2 text-left hover:border-amber-500 text-xs font-bold text-slate-800 transition flex justify-between items-center"
-                >
-                  <span>Amit Verma</span>
-                  <span className="text-[10px] text-amber-600 font-bold">Wholesale Buyer</span>
-                </button>
-              </div>
-            </div>
-
+            {/* Modal Content */}
             <form onSubmit={handleLoginSubmit} className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Your Full Name</label>

@@ -225,9 +225,9 @@ export const HomePage: React.FC = () => {
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 mb-3">
                 <Package className="h-8 w-8" />
               </div>
-              <h3 className="text-base font-bold text-slate-800">No products matching your search</h3>
+              <h3 className="text-base font-bold text-slate-800">No products found</h3>
               <p className="text-xs text-slate-500 mt-1 max-w-xs">
-                Try clearing filters or search for Mobiles, Earbuds, Basmati Rice, Desi Ghee or Shirts.
+                Products added from the Admin Operations Console will appear here.
               </p>
               <button
                 onClick={() => {

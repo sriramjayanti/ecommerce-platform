@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 interface BottomNavProps {
-  onOpenCategories: () => void;
+  onOpenCategories?: () => void;
   onOpenSearch?: () => void;
   onOpenLogin?: () => void;
 }
@@ -29,13 +29,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const { user } = useAuth();
 
   const isHome = location.pathname === '/';
+  const isCategories = location.pathname === '/categories';
   const isOrders = location.pathname === '/account' && location.search.includes('tab=orders');
   const isWishlist = location.pathname.includes('/wishlist') || (location.pathname === '/account' && location.search.includes('tab=wishlist'));
-  const isAccount = location.pathname === '/account' && !isOrders && !isWishlist;
+  const isProfile = location.pathname === '/account' && (location.search.includes('tab=profile') || (!isOrders && !isWishlist));
 
   const handleProfileClick = () => {
     if (user) {
-      navigate('/account');
+      navigate('/account?tab=profile');
     } else if (onOpenLogin) {
       onOpenLogin();
     } else {
@@ -60,13 +61,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
         </Link>
 
-        {/* 2. Categories Drawer Trigger */}
+        {/* 2. Categories Hamburger Slide Trigger (No new page navigation) */}
         <button
           type="button"
-          onClick={onOpenCategories}
-          className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-500 hover:text-amber-600 transition font-bold"
+          onClick={() => {
+            if (onOpenCategories) {
+              onOpenCategories();
+            } else {
+              window.dispatchEvent(new CustomEvent('open-category-drawer'));
+            }
+          }}
+          className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition text-slate-500 hover:text-amber-600 active:scale-95 font-bold cursor-pointer"
+          title="Open Categories Menu"
+          aria-label="Open Categories Menu"
         >
-          <LayoutGrid className="h-5 w-5" />
+          <LayoutGrid className="h-5 w-5 stroke-[2.2px]" />
           <span className="text-[10px] mt-0.5 tracking-tight">Categories</span>
         </button>
 
@@ -104,10 +113,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           type="button"
           onClick={handleProfileClick}
           className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition ${
-            isAccount ? 'text-amber-600 font-extrabold' : 'text-slate-500 hover:text-slate-900 font-bold'
+            isProfile ? 'text-amber-600 font-extrabold' : 'text-slate-500 hover:text-slate-900 font-bold'
           }`}
         >
-          <User className={`h-5 w-5 ${isAccount ? 'stroke-[2.5px]' : ''}`} />
+          <User className={`h-5 w-5 ${isProfile ? 'stroke-[2.5px]' : ''}`} />
           <span className="text-[10px] mt-0.5 tracking-tight">
             {user ? 'Profile' : 'Sign In'}
           </span>

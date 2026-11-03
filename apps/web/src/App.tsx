@@ -13,7 +13,21 @@ import { PaymentSimulatorPage } from './pages/PaymentSimulatorPage';
 import { OrderTrackingPage } from './pages/OrderTrackingPage';
 import { AccountPage } from './pages/AccountPage';
 import { CustomerLoginPage } from './pages/CustomerLoginPage';
+import { CategoriesPage } from './pages/CategoriesPage';
 import { BottomNav } from './components/BottomNav';
+import { getAdminUrl } from '@ecommerce/shared';
+
+const AdminRedirect: React.FC = () => {
+  React.useEffect(() => {
+    window.location.href = getAdminUrl();
+  }, []);
+  return (
+    <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center space-y-3">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+      <p className="text-sm font-bold text-slate-700">Opening Admin Operations Console...</p>
+    </div>
+  );
+};
 
 export function App() {
   return (
@@ -25,6 +39,7 @@ export function App() {
             <main className="flex-1">
               <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/product/:idOrSlug" element={<ProductDetailPage />} />
                 <Route path="/category/:categorySlug" element={<CategoryPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
@@ -35,20 +50,13 @@ export function App() {
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/wishlist" element={<AccountPage defaultTab="wishlist" />} />
                 <Route path="/login" element={<CustomerLoginPage />} />
+                <Route path="/admin" element={<AdminRedirect />} />
+                <Route path="/admin/*" element={<AdminRedirect />} />
               </Routes>
             </main>
             <Footer />
             <CartDrawer />
-            <BottomNav
-              onOpenCategories={() => {
-                const menuBtn = document.querySelector('button[title*="Navigation Menu"]') as HTMLButtonElement;
-                if (menuBtn) {
-                  menuBtn.click();
-                } else {
-                  window.location.href = '/?tab=categories';
-                }
-              }}
-            />
+            <BottomNav />
           </div>
         </CartProvider>
       </AuthProvider>

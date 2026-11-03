@@ -85,3 +85,27 @@ export function mapToSimpleTrackingStep(status: string): {
     description: 'Order verified and confirmed. Updated by store admin.',
   };
 }
+
+export const STOREFRONT_URL_PROD = 'https://dailyfresh-wholesale-mart.web.app';
+export const ADMIN_URL_PROD = 'https://dailyfresh-wholesale-admin.web.app';
+
+export function getStorefrontUrl(): string {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5173';
+    }
+  }
+  return STOREFRONT_URL_PROD;
+}
+
+export function getAdminUrl(): string {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5174';
+    }
+  }
+  return ADMIN_URL_PROD;
+}
+

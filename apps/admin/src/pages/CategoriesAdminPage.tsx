@@ -128,16 +128,21 @@ export const CategoriesAdminPage: React.FC = () => {
   const handleDeleteCategory = async (id: string) => {
     if (!confirm('Are you sure you want to delete this category?')) return;
     setError(null);
+    const previous = [...categories];
+    // Optimistic instant update
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+
     try {
       const res = await dataStore.deleteCategory(id);
       if (!res.success) {
+        setCategories(previous);
         setError(res.error || 'Failed to delete category');
       } else {
         setSuccessMsg('Category removed successfully');
-        setTimeout(() => setSuccessMsg(null), 3000);
-        fetchCategories();
+        setTimeout(() => setSuccessMsg(null), 2500);
       }
     } catch (err: any) {
+      setCategories(previous);
       setError(err.message || 'Error deleting category');
     }
   };
@@ -188,12 +193,23 @@ export const CategoriesAdminPage: React.FC = () => {
       )}
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {categories.map((cat) => (
-          <div
-            key={cat.id}
-            className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs hover:border-emerald-300 hover:shadow-md transition flex flex-col justify-between"
-          >
+      {!loading && categories.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center space-y-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 mx-auto">
+            <Layers className="h-6 w-6" />
+          </div>
+          <h3 className="font-bold text-slate-800 text-sm">No Categories Created Yet</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Get started by adding your first product category using the "+ New Category" button above.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {categories.map((cat) => (
+            <div
+              key={cat.id}
+              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs hover:border-emerald-300 hover:shadow-md transition flex flex-col justify-between"
+            >
             <div>
               <div className="h-32 w-full rounded-2xl overflow-hidden bg-slate-100 mb-3 border border-slate-100">
                 <img
@@ -243,6 +259,7 @@ export const CategoriesAdminPage: React.FC = () => {
           </div>
         ))}
       </div>
+      )}
 
       {/* Add / Edit Category Modal */}
       {isModalOpen && (

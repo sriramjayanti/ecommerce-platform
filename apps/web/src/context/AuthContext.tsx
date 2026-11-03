@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserProfile, Address, UserRole } from '@ecommerce/shared';
+import { UserProfile, Address, UserRole, dataStore } from '@ecommerce/shared';
 
 interface AuthContextType {
   user: UserProfile | null;
   addresses: Address[];
   login: (emailOrPhone: string, displayName?: string, role?: UserRole) => Promise<void>;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   logout: () => void;
   addAddress: (addr: Omit<Address, 'id' | 'userId'>) => Address;
   deleteAddress: (id: string) => void;
@@ -66,6 +67,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastLoginAt: new Date().toISOString(),
     };
     setUser(newUser);
+    // Sync customer login to Firestore in real time
+    dataStore.syncUser(newUser).catch(() => {});
+  };
+
+  const updateUserProfile = async (updates: Partial<UserProfile>) => {
+    if (!user) return;
+    const updated: UserProfile = {
+      ...user,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    setUser(updated);
+    dataStore.syncUser(updated).catch(() => {});
   };
 
   const logout = () => {
@@ -110,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         addresses,
         login,
+        updateUserProfile,
         logout,
         addAddress,
         deleteAddress,

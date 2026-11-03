@@ -3,4 +3,5 @@ export * from './pricing';
 export * from './constants';
 export * from './catalogData';
 export * from './dataStore';
+export * from './firebase';
 

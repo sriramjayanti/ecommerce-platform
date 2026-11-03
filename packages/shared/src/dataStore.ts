@@ -7,6 +7,7 @@ import {
   StoreSettings,
   OrderStatus,
   Address,
+  UserProfile,
 } from './types';
 import { DEFAULT_STORE_SETTINGS } from './constants';
 import {
@@ -14,6 +15,17 @@ import {
   INITIAL_PRODUCTS,
   INITIAL_BANNERS,
 } from './catalogData';
+import { firestore } from './firebase';
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+} from 'firebase/firestore';
 
 type SyncEventType =
   | 'products_updated'
@@ -95,16 +107,97 @@ class UnifiedDataStore {
 
     // Ensure initial seeding in localStorage if not present
     this.ensureSeeded();
+
+    // Attach Firestore real-time listeners for categories, products & orders
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        // Real-time Orders Listener
+        const ordersCol = collection(firestore, 'orders');
+        onSnapshot(ordersCol, (snapshot) => {
+          if (!snapshot.empty) {
+            const remoteOrders: Order[] = [];
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data() as Order;
+              if (data && (data.id || (data as any).orderNumber)) {
+                remoteOrders.push(data);
+              }
+            });
+            if (remoteOrders.length > 0) {
+              remoteOrders.sort(
+                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+              safeSetItem('dailyfresh_orders', JSON.stringify(remoteOrders));
+              this.notifyListeners({
+                type: 'orders_updated',
+                timestamp: Date.now(),
+              });
+            }
+          }
+        }, (err) => {
+          console.warn('Firestore orders onSnapshot listener error:', err);
+        });
+
+        // Real-time Categories Listener (Instantly syncs Admin -> Customer across domains)
+        const categoriesCol = collection(firestore, 'categories');
+        onSnapshot(categoriesCol, (snapshot) => {
+          const remoteCats: Category[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as Category;
+            if (data && data.id) {
+              remoteCats.push(data);
+            }
+          });
+          remoteCats.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+          safeSetItem('dailyfresh_categories', JSON.stringify(remoteCats));
+          this.notifyListeners({
+            type: 'categories_updated',
+            timestamp: Date.now(),
+          });
+        }, (err) => {
+          console.warn('Firestore categories onSnapshot error:', err);
+        });
+
+        // Real-time Products Listener (Instantly syncs Admin -> Customer across domains)
+        const productsCol = collection(firestore, 'products');
+        onSnapshot(productsCol, (snapshot) => {
+          const remoteProds: Product[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as Product;
+            if (data && data.id) {
+              remoteProds.push(data);
+            }
+          });
+          safeSetItem('dailyfresh_products', JSON.stringify(remoteProds));
+          this.notifyListeners({
+            type: 'products_updated',
+            timestamp: Date.now(),
+          });
+        }, (err) => {
+          console.warn('Firestore products onSnapshot error:', err);
+        });
+      } catch (err) {
+        console.warn('Could not initialize Firestore onSnapshot listeners:', err);
+      }
+    }
   }
 
-  private ensureSeeded() {
+  private async ensureSeeded() {
     if (typeof window === 'undefined') return;
 
+    // Total clean wipe of client-side cache so user tests all pages from zero/clean slate
+    if (!safeGetItem('dailyfresh_clean_slate_v10')) {
+      safeSetItem('dailyfresh_products', JSON.stringify([]));
+      safeSetItem('dailyfresh_categories', JSON.stringify([]));
+      safeSetItem('dailyfresh_orders', JSON.stringify([]));
+      safeSetItem('dailyfresh_inventory_logs', JSON.stringify([]));
+      safeSetItem('dailyfresh_clean_slate_v10', 'true');
+    }
+
     if (!safeGetItem('dailyfresh_products')) {
-      safeSetItem('dailyfresh_products', JSON.stringify(INITIAL_PRODUCTS));
+      safeSetItem('dailyfresh_products', JSON.stringify([]));
     }
     if (!safeGetItem('dailyfresh_categories')) {
-      safeSetItem('dailyfresh_categories', JSON.stringify(INITIAL_CATEGORIES));
+      safeSetItem('dailyfresh_categories', JSON.stringify([]));
     }
     if (!safeGetItem('dailyfresh_banners')) {
       safeSetItem('dailyfresh_banners', JSON.stringify(INITIAL_BANNERS));
@@ -113,83 +206,10 @@ class UnifiedDataStore {
       safeSetItem('dailyfresh_settings', JSON.stringify(DEFAULT_STORE_SETTINGS));
     }
     if (!safeGetItem('dailyfresh_orders')) {
-      // Seed initial demo order
-      const initialOrders: Order[] = [
-        {
-          id: 'ord-1001',
-          orderNumber: 'DFW-902144',
-          userId: 'user-customer-2',
-          customerName: 'Amit Verma',
-          customerPhone: '+919834567890',
-          customerEmail: 'amit.verma@example.com',
-          items: [
-            {
-              productId: 'prod-anc-headphones',
-              variantId: 'var-anc-black',
-              title: 'SonicPro Pulse Hybrid ANC Wireless Headphones',
-              variantName: 'Midnight Matte Black',
-              sku: 'SP-ANC-BLK',
-              image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=700',
-              quantity: 2,
-              unitPrice: 2499,
-              basePrice: 2499,
-              mrp: 6999,
-              lineTotal: 4998,
-              savings: 9000,
-              appliedTierLabel: 'Retail Unit Price',
-            },
-          ],
-          shippingAddress: {
-            id: 'addr-1',
-            userId: 'user-customer-2',
-            fullName: 'Amit Verma',
-            phone: '+919834567890',
-            line1: 'B-402, Prestige Tower, MG Road',
-            city: 'Bengaluru',
-            state: 'Karnataka',
-            pincode: '560001',
-            addressType: 'work',
-            isDefault: true,
-          },
-          subtotal: 4998,
-          totalMrp: 13998,
-          totalSavings: 9000,
-          deliveryCharge: 0,
-          taxAmount: 0,
-          discountAmount: 0,
-          finalTotal: 4998,
-          paymentMethod: 'upi',
-          paymentStatus: 'successful',
-          paymentId: 'UPI-TXN-8849201',
-          orderStatus: 'Confirmed',
-          statusHistory: [
-            { status: 'Placed', timestamp: new Date(Date.now() - 3600000).toISOString(), note: 'Order placed via UPI' },
-            { status: 'Confirmed', timestamp: new Date(Date.now() - 1800000).toISOString(), note: 'Payment verified' },
-          ],
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          updatedAt: new Date(Date.now() - 1800000).toISOString(),
-        },
-      ];
-      safeSetItem('dailyfresh_orders', JSON.stringify(initialOrders));
+      safeSetItem('dailyfresh_orders', JSON.stringify([]));
     }
     if (!safeGetItem('dailyfresh_inventory_logs')) {
-      const initialLogs: InventoryLog[] = [
-        {
-          id: 'log-1',
-          productId: 'prod-anc-headphones',
-          variantId: 'var-anc-black',
-          productName: 'SonicPro Pulse Hybrid ANC Wireless Headphones',
-          variantName: 'Midnight Matte Black',
-          previousStock: 45,
-          change: -2,
-          newStock: 43,
-          reason: 'order_sale',
-          referenceId: 'DFW-902144',
-          createdBy: 'Customer Checkout',
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-        },
-      ];
-      safeSetItem('dailyfresh_inventory_logs', JSON.stringify(initialLogs));
+      safeSetItem('dailyfresh_inventory_logs', JSON.stringify([]));
     }
   }
 
@@ -225,6 +245,9 @@ class UnifiedDataStore {
   // ------------------- SAFE HTTP FETCH WRAPPER -------------------
   private async safeApiFetch<T>(url: string, options?: RequestInit): Promise<T | null> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...((options?.headers as Record<string, string>) || {}),
@@ -233,32 +256,53 @@ class UnifiedDataStore {
       if (adminToken && !headers['Authorization']) {
         headers['Authorization'] = `Bearer ${adminToken}`;
       }
-      const res = await fetch(url, { ...options, headers });
+      const res = await fetch(url, { ...options, headers, signal: controller.signal });
+      clearTimeout(timeoutId);
       const contentType = res.headers.get('content-type') || '';
       if (res.ok && contentType.includes('application/json')) {
         const json = await res.json();
         return json as T;
       }
     } catch {
-      // Backend unavailable or returned HTML error
+      // Backend unavailable or timed out
     }
     return null;
   }
 
   // ------------------- PRODUCTS -------------------
   public async getProducts(): Promise<Product[]> {
+    let localProducts: Product[] = [];
+    try {
+      const raw = safeGetItem('dailyfresh_products');
+      if (raw) localProducts = JSON.parse(raw);
+    } catch {}
+
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        const snap = await getDocs(collection(firestore, 'products'));
+        const remoteProds: Product[] = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data() as Product;
+          if (data && data.id) {
+            remoteProds.push(data);
+          }
+        });
+        if (remoteProds.length > 0 || localProducts.length === 0) {
+          safeSetItem('dailyfresh_products', JSON.stringify(remoteProds));
+          return remoteProds;
+        }
+      } catch (err) {
+        console.warn('Firestore getProducts error:', err);
+      }
+    }
+
     const apiRes = await this.safeApiFetch<{ success: boolean; data: Product[] }>('/api/products');
-    if (apiRes && apiRes.success && Array.isArray(apiRes.data) && apiRes.data.length > 0) {
+    if (apiRes && apiRes.success && Array.isArray(apiRes.data)) {
       safeSetItem('dailyfresh_products', JSON.stringify(apiRes.data));
       return apiRes.data;
     }
 
-    try {
-      const raw = safeGetItem('dailyfresh_products');
-      if (raw) return JSON.parse(raw);
-    } catch {}
-
-    return INITIAL_PRODUCTS;
+    return localProducts;
   }
 
   public async getProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {
@@ -268,111 +312,126 @@ class UnifiedDataStore {
   }
 
   public async saveProduct(productData: Partial<Product>): Promise<{ success: boolean; data: Product; error?: string }> {
-    // Try backend first
-    const isEdit = !!productData.id;
-    const url = isEdit ? `/api/products/${productData.id}` : '/api/products';
-    const method = isEdit ? 'PUT' : 'POST';
-
-    const apiRes = await this.safeApiFetch<{ success: boolean; data: Product; error?: string }>(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(productData),
-    });
-
-    if (apiRes && apiRes.success && apiRes.data) {
-      const products = await this.getProducts();
-      const idx = products.findIndex((p) => p.id === apiRes.data.id);
-      if (idx !== -1) {
-        products[idx] = apiRes.data;
-      } else {
-        products.unshift(apiRes.data);
-      }
-      safeSetItem('dailyfresh_products', JSON.stringify(products));
-      this.broadcast('products_updated', apiRes.data);
-      return apiRes;
-    }
-
-    // Client-side fallback
     const products = await this.getProducts();
     let saved: Product;
 
-    if (isEdit) {
+    if (productData.id) {
       const idx = products.findIndex((p) => p.id === productData.id);
-      if (idx === -1) {
-        return { success: false, data: null as any, error: 'Product not found' };
+      if (idx !== -1) {
+        saved = {
+          ...products[idx],
+          ...productData,
+          updatedAt: new Date().toISOString(),
+        } as Product;
+        products[idx] = saved;
+      } else {
+        saved = productData as Product;
+        products.unshift(saved);
       }
-      saved = {
-        ...products[idx],
-        ...productData,
-        updatedAt: new Date().toISOString(),
-      } as Product;
-      products[idx] = saved;
     } else {
-      const newId = `prod-${Date.now()}`;
-      const slug = productData.slug || (productData.title || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const id = `prod-${Date.now()}`;
+      const slug =
+        productData.slug ||
+        (productData.title || 'product')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+
       saved = {
-        id: newId,
+        id,
         slug,
-        title: productData.title || 'New Product',
+        title: productData.title || 'Untitled Product',
         description: productData.description || '',
-        categoryId: productData.categoryId || 'cat-groceries',
+        categoryId: productData.categoryId || '',
         subcategoryId: productData.subcategoryId || '',
-        brand: productData.brand || 'DailyMart',
+        brand: productData.brand || 'DailyFresh',
+        badge: productData.badge,
+        deliveryTag: productData.deliveryTag || '⚡ FREE Delivery by Tomorrow 8 PM',
         images: productData.images && productData.images.length > 0 ? productData.images : ['https://images.unsplash.com/photo-1542838132-92c53300491e?w=700'],
-        variants: productData.variants && productData.variants.length > 0 ? productData.variants : [
-          {
-            id: `var-${Date.now()}`,
-            name: 'Standard Pack',
-            sku: `SKU-${Date.now().toString().slice(-6)}`,
-            weightOrSize: '1 unit',
-            mrp: 199,
-            basePrice: 149,
-            stock: 50,
-            lowStockThreshold: 10,
-            pricingTiers: [{ id: 't1', minQty: 1, maxQty: null, unitPrice: 149, label: 'Standard Price' }],
-          },
-        ],
-        isWholesaleEnabled: productData.isWholesaleEnabled ?? true,
-        isFeatured: productData.isFeatured ?? true,
-        rating: 4.8,
-        reviewCount: 1,
-        status: 'active',
+        isWholesaleEnabled: productData.isWholesaleEnabled !== undefined ? productData.isWholesaleEnabled : true,
+        status: productData.status || 'active',
+        isFeatured: productData.isFeatured || false,
+        variants: productData.variants || [],
+        rating: 0,
+        reviewCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        ...productData,
-      } as Product;
+      };
       products.unshift(saved);
     }
 
     safeSetItem('dailyfresh_products', JSON.stringify(products));
     this.broadcast('products_updated', saved);
+
+    if (typeof window !== 'undefined' && firestore) {
+      setDoc(doc(firestore, 'products', saved.id), saved).catch((err) => {
+        console.warn('Firestore setDoc product error:', err);
+      });
+    }
+
+    const isEdit = !!productData.id;
+    const url = isEdit ? `/api/products/${productData.id}` : '/api/products';
+    const method = isEdit ? 'PUT' : 'POST';
+    this.safeApiFetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(saved),
+    }).catch(() => {});
+
     return { success: true, data: saved };
   }
 
   public async deleteProduct(id: string): Promise<{ success: boolean; error?: string }> {
-    await this.safeApiFetch(`/api/products/${id}`, { method: 'DELETE' });
-
     const products = await this.getProducts();
     const filtered = products.filter((p) => p.id !== id);
     safeSetItem('dailyfresh_products', JSON.stringify(filtered));
     this.broadcast('products_updated', { id });
+
+    if (typeof window !== 'undefined' && firestore) {
+      deleteDoc(doc(firestore, 'products', id)).catch((err) => {
+        console.warn('Firestore deleteDoc product error:', err);
+      });
+    }
+
+    this.safeApiFetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => {});
     return { success: true };
   }
 
   // ------------------- CATEGORIES -------------------
   public async getCategories(): Promise<Category[]> {
+    let localCats: Category[] = [];
+    try {
+      const raw = safeGetItem('dailyfresh_categories');
+      if (raw) localCats = JSON.parse(raw);
+    } catch {}
+
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        const snap = await getDocs(collection(firestore, 'categories'));
+        const remoteCats: Category[] = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data() as Category;
+          if (data && data.id) {
+            remoteCats.push(data);
+          }
+        });
+        remoteCats.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        if (remoteCats.length > 0 || localCats.length === 0) {
+          safeSetItem('dailyfresh_categories', JSON.stringify(remoteCats));
+          return remoteCats;
+        }
+      } catch (err) {
+        console.warn('Firestore getCategories error:', err);
+      }
+    }
+
     const apiRes = await this.safeApiFetch<{ success: boolean; data: Category[] }>('/api/categories');
-    if (apiRes && apiRes.success && Array.isArray(apiRes.data) && apiRes.data.length > 0) {
+    if (apiRes && apiRes.success && Array.isArray(apiRes.data)) {
       safeSetItem('dailyfresh_categories', JSON.stringify(apiRes.data));
       return apiRes.data;
     }
 
-    try {
-      const raw = safeGetItem('dailyfresh_categories');
-      if (raw) return JSON.parse(raw);
-    } catch {}
-
-    return INITIAL_CATEGORIES;
+    return localCats;
   }
 
   public async saveCategory(categoryData: Partial<Category>): Promise<{ success: boolean; data: Category; error?: string }> {
@@ -381,7 +440,6 @@ class UnifiedDataStore {
     }
 
     const categories = await this.getCategories();
-    // Prevent accidental duplicate categories
     const duplicate = categories.find(
       (c) =>
         c.name.trim().toLowerCase() === categoryData.name!.trim().toLowerCase() &&
@@ -395,60 +453,50 @@ class UnifiedDataStore {
       };
     }
 
+    const id = categoryData.id || `cat-${Date.now()}`;
+    const slug =
+      categoryData.slug ||
+      categoryData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+
+    const saved: Category = {
+      id,
+      name: categoryData.name.trim(),
+      slug,
+      image: categoryData.image || '',
+      icon: categoryData.icon || 'Layers',
+      sortOrder: categoryData.sortOrder !== undefined ? categoryData.sortOrder : categories.length + 1,
+      isVisible: categoryData.isVisible !== undefined ? categoryData.isVisible : true,
+      subcategories: categoryData.subcategories || [],
+    };
+
+    const idx = categories.findIndex((c) => c.id === id);
+    if (idx !== -1) {
+      categories[idx] = saved;
+    } else {
+      categories.push(saved);
+    }
+    categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    safeSetItem('dailyfresh_categories', JSON.stringify(categories));
+    this.broadcast('categories_updated', saved);
+
+    if (typeof window !== 'undefined' && firestore) {
+      setDoc(doc(firestore, 'categories', saved.id), saved).catch((err) => {
+        console.warn('Firestore setDoc category error:', err);
+      });
+    }
+
     const isEdit = !!categoryData.id;
     const url = isEdit ? `/api/categories/${categoryData.id}` : '/api/categories';
     const method = isEdit ? 'PUT' : 'POST';
-
-    const apiRes = await this.safeApiFetch<{ success: boolean; data: Category; error?: string }>(url, {
+    this.safeApiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(categoryData),
-    });
+      body: JSON.stringify(saved),
+    }).catch(() => {});
 
-    if (apiRes && apiRes.success && apiRes.data) {
-      const idx = categories.findIndex((c) => c.id === apiRes.data.id);
-      if (idx !== -1) {
-        categories[idx] = apiRes.data;
-      } else {
-        categories.push(apiRes.data);
-      }
-      safeSetItem('dailyfresh_categories', JSON.stringify(categories));
-      this.broadcast('categories_updated', apiRes.data);
-      return apiRes;
-    }
-
-    // Client-side fallback
-    let saved: Category;
-
-    if (isEdit) {
-      const idx = categories.findIndex((c) => c.id === categoryData.id);
-      if (idx === -1) {
-        return { success: false, data: null as any, error: 'Category not found' };
-      }
-      saved = {
-        ...categories[idx],
-        ...categoryData,
-        name: categoryData.name.trim(),
-      } as Category;
-      categories[idx] = saved;
-    } else {
-      const newId = `cat-${Date.now()}`;
-      const slug = categoryData.slug || categoryData.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      saved = {
-        id: newId,
-        name: categoryData.name.trim(),
-        slug,
-        image: categoryData.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500',
-        sortOrder: categoryData.sortOrder || categories.length + 1,
-        isVisible: true,
-        subcategories: categoryData.subcategories || [],
-        ...categoryData,
-      };
-      categories.push(saved);
-    }
-
-    safeSetItem('dailyfresh_categories', JSON.stringify(categories));
-    this.broadcast('categories_updated', saved);
     return { success: true, data: saved };
   }
 
@@ -458,16 +506,22 @@ class UnifiedDataStore {
     if (hasAssignedProducts) {
       return {
         success: false,
-        error: 'Cannot delete category: active products are still assigned to this category. Reassign or archive those products first.',
+        error: 'Cannot delete category: active products are still assigned to this category. Reassign or delete those products first.',
       };
     }
-
-    await this.safeApiFetch(`/api/categories/${id}`, { method: 'DELETE' });
 
     const categories = await this.getCategories();
     const filtered = categories.filter((c) => c.id !== id);
     safeSetItem('dailyfresh_categories', JSON.stringify(filtered));
     this.broadcast('categories_updated', { id });
+
+    if (typeof window !== 'undefined' && firestore) {
+      deleteDoc(doc(firestore, 'categories', id)).catch((err) => {
+        console.warn('Firestore deleteDoc category error:', err);
+      });
+    }
+
+    this.safeApiFetch(`/api/categories/${id}`, { method: 'DELETE' }).catch(() => {});
     return { success: true };
   }
 
@@ -590,6 +644,48 @@ class UnifiedDataStore {
 
   // ------------------- ORDERS -------------------
   public async getOrders(): Promise<Order[]> {
+    // 1. Fetch remote orders from Firestore (Authoritative multi-origin sync)
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        const ordersCol = collection(firestore, 'orders');
+        const snap = await getDocs(ordersCol);
+        if (!snap.empty) {
+          const firestoreOrders: Order[] = [];
+          snap.forEach((docSnap) => {
+            const data = docSnap.data() as Order;
+            if (data && (data.id || (data as any).orderNumber)) {
+              firestoreOrders.push(data);
+            }
+          });
+
+          // Merge with any local offline orders
+          let localOrders: Order[] = [];
+          try {
+            const raw = safeGetItem('dailyfresh_orders');
+            if (raw) localOrders = JSON.parse(raw);
+          } catch {}
+
+          const orderMap = new Map<string, Order>();
+          firestoreOrders.forEach((o) => orderMap.set(o.id, o));
+          localOrders.forEach((o) => {
+            if (!orderMap.has(o.id)) {
+              orderMap.set(o.id, o);
+              // Backfill local order to Firestore
+              setDoc(doc(firestore, 'orders', o.id), o).catch(() => {});
+            }
+          });
+
+          const merged = Array.from(orderMap.values()).sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          safeSetItem('dailyfresh_orders', JSON.stringify(merged));
+          return merged;
+        }
+      } catch (err) {
+        console.warn('Firestore getOrders sync error:', err);
+      }
+    }
+
     const apiRes = await this.safeApiFetch<{ success: boolean; data: Order[] }>('/api/orders');
     if (apiRes && apiRes.success && Array.isArray(apiRes.data) && apiRes.data.length > 0) {
       safeSetItem('dailyfresh_orders', JSON.stringify(apiRes.data));
@@ -787,6 +883,31 @@ class UnifiedDataStore {
     orders.unshift(order);
     safeSetItem('dailyfresh_orders', JSON.stringify(orders));
 
+    // Save order directly to Cloud Firestore so Admin Portal receives it in real time
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        await setDoc(doc(firestore, 'orders', order.id), order);
+        // Also register/update customer in users collection
+        if (payload.userId) {
+          await setDoc(
+            doc(firestore, 'users', payload.userId),
+            {
+              id: payload.userId,
+              displayName: payload.customerName,
+              phone: payload.customerPhone,
+              email: payload.customerEmail || null,
+              lastOrderAt: order.createdAt,
+              lastOrderId: order.orderNumber,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        }
+      } catch (firestoreErr) {
+        console.warn('Firestore write order error (saved locally):', firestoreErr);
+      }
+    }
+
     // Broadcast across windows so Admin Portal gets updated immediately
     this.broadcast('order_placed', order);
     this.broadcast('orders_updated');
@@ -862,8 +983,55 @@ class UnifiedDataStore {
     });
 
     safeSetItem('dailyfresh_orders', JSON.stringify(orders));
+
+    // Update in Firestore in real time
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        await setDoc(
+          doc(firestore, 'orders', orderId),
+          {
+            orderStatus: nextStatus,
+            updatedAt: order.updatedAt,
+            statusHistory: order.statusHistory,
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('Firestore updateOrderStatus error:', err);
+      }
+    }
+
     this.broadcast('orders_updated', order);
     return { success: true, data: order };
+  }
+
+  // ------------------- USERS & CUSTOMER SYNC -------------------
+  public async syncUser(user: Partial<UserProfile>): Promise<void> {
+    if (!user || !user.id) return;
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        await setDoc(doc(firestore, 'users', user.id), {
+          ...user,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+      } catch (err) {
+        console.warn('Firestore syncUser error:', err);
+      }
+    }
+  }
+
+  public async getSyncedUsers(): Promise<any[]> {
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        const snap = await getDocs(collection(firestore, 'users'));
+        const users: any[] = [];
+        snap.forEach((docSnap) => {
+          users.push(docSnap.data());
+        });
+        return users;
+      } catch {}
+    }
+    return [];
   }
 
   // ------------------- BANNERS -------------------
@@ -965,11 +1133,6 @@ class UnifiedDataStore {
     lowStockCount: number;
     pendingOrders: number;
   }> {
-    const apiRes = await this.safeApiFetch<{ success: boolean; data: any }>('/api/admin/metrics');
-    if (apiRes && apiRes.success && apiRes.data && apiRes.data.totalOrders !== undefined) {
-      return apiRes.data;
-    }
-
     const orders = await this.getOrders();
     const products = await this.getProducts();
 
@@ -977,13 +1140,13 @@ class UnifiedDataStore {
     const totalRevenue = orders.reduce((sum, o) => sum + (o.finalTotal || 0), 0);
     const aov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
     const wholesaleOrders = orders.filter((o) =>
-      o.items.some((i) => (i.appliedTierLabel && i.appliedTierLabel.includes('Wholesale')) || i.quantity >= 3)
+      o.items && o.items.some((i) => (i.appliedTierLabel && i.appliedTierLabel.includes('Wholesale')) || i.quantity >= 3)
     ).length;
     const pendingOrders = orders.filter(
       (o) => o.orderStatus === 'Placed' || o.orderStatus === 'Confirmed' || o.orderStatus === 'Processing'
     ).length;
-    const lowStockCount = products
-      .flatMap((p) => p.variants)
+    const lowStockCount = products.length === 0 ? 0 : products
+      .flatMap((p) => p.variants || [])
       .filter((v) => v.stock <= (v.lowStockThreshold || 10)).length;
 
     return {
@@ -999,12 +1162,12 @@ class UnifiedDataStore {
   // ------------------- DEMO DATA RESET -------------------
   public resetDemoData() {
     if (typeof window === 'undefined') return;
-    safeSetItem('dailyfresh_products', JSON.stringify(INITIAL_PRODUCTS));
-    safeSetItem('dailyfresh_categories', JSON.stringify(INITIAL_CATEGORIES));
+    safeSetItem('dailyfresh_products', JSON.stringify([]));
+    safeSetItem('dailyfresh_categories', JSON.stringify([]));
     safeSetItem('dailyfresh_banners', JSON.stringify(INITIAL_BANNERS));
     safeSetItem('dailyfresh_settings', JSON.stringify(DEFAULT_STORE_SETTINGS));
-    safeRemoveItem('dailyfresh_orders');
-    this.ensureSeeded();
+    safeSetItem('dailyfresh_orders', JSON.stringify([]));
+    safeSetItem('dailyfresh_inventory_logs', JSON.stringify([]));
     this.broadcast('products_updated');
     this.broadcast('categories_updated');
     this.broadcast('orders_updated');
