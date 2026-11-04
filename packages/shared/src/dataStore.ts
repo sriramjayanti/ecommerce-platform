@@ -571,18 +571,39 @@ class UnifiedDataStore {
 
   // ------------------- INVENTORY & STOCK -------------------
   public async getInventoryLogs(): Promise<InventoryLog[]> {
+    let localLogs: InventoryLog[] = [];
+    try {
+      const raw = safeGetItem('dailyfresh_inventory_logs');
+      if (raw) localLogs = JSON.parse(raw);
+    } catch {}
+
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        const snap = await getDocs(collection(firestore, 'inventory_logs'));
+        const remoteLogs: InventoryLog[] = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data() as InventoryLog;
+          if (data && data.id) {
+            remoteLogs.push(data);
+          }
+        });
+        remoteLogs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (remoteLogs.length > 0) {
+          safeSetItem('dailyfresh_inventory_logs', JSON.stringify(remoteLogs.slice(0, 100)));
+          return remoteLogs;
+        }
+      } catch (err) {
+        console.warn('Firestore getInventoryLogs error:', err);
+      }
+    }
+
     const apiRes = await this.safeApiFetch<{ success: boolean; data: InventoryLog[] }>('/api/inventory/logs');
     if (apiRes && apiRes.success && Array.isArray(apiRes.data)) {
       safeSetItem('dailyfresh_inventory_logs', JSON.stringify(apiRes.data));
       return apiRes.data;
     }
 
-    try {
-      const raw = safeGetItem('dailyfresh_inventory_logs');
-      if (raw) return JSON.parse(raw);
-    } catch {}
-
-    return [];
+    return localLogs;
   }
 
   public async adjustStock(
@@ -629,6 +650,18 @@ class UnifiedDataStore {
     };
     logs.unshift(newLog);
     safeSetItem('dailyfresh_inventory_logs', JSON.stringify(logs.slice(0, 100)));
+
+    // Save directly to Firestore for both product stock and inventory log
+    if (typeof window !== 'undefined' && firestore) {
+      const cleanProd = cleanForFirestore(product);
+      setDoc(doc(firestore, 'products', product.id), cleanProd).catch((err) => {
+        console.warn('Firestore adjustStock product error:', err);
+      });
+      const cleanLogDoc = cleanForFirestore(newLog);
+      setDoc(doc(firestore, 'inventory_logs', newLog.id), cleanLogDoc).catch((err) => {
+        console.warn('Firestore adjustStock log error:', err);
+      });
+    }
 
     this.broadcast('inventory_updated', { productId, variantId, newStock });
     this.broadcast('products_updated', product);
@@ -1017,12 +1050,17 @@ class UnifiedDataStore {
       this.broadcast('products_updated');
     }
 
+    // Mark COD payment as successful upon Delivery
+    if (nextStatus === 'Delivered' && order.paymentMethod === 'cod') {
+      order.paymentStatus = 'successful';
+    }
+
     order.orderStatus = nextStatus;
     order.updatedAt = new Date().toISOString();
     order.statusHistory.push({
       status: nextStatus,
       timestamp: new Date().toISOString(),
-      note: note || `Order advanced to ${nextStatus}`,
+      note: note || (nextStatus === 'Delivered' && order.paymentMethod === 'cod' ? 'Delivered and cash collected successfully' : `Order advanced to ${nextStatus}`),
       updatedBy,
     });
 
@@ -1035,6 +1073,7 @@ class UnifiedDataStore {
           doc(firestore, 'orders', orderId),
           {
             orderStatus: nextStatus,
+            paymentStatus: order.paymentStatus,
             updatedAt: order.updatedAt,
             statusHistory: order.statusHistory,
           },
@@ -1230,8 +1269,12 @@ class UnifiedDataStore {
     const products = await this.getProducts();
 
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.finalTotal || 0), 0);
-    const aov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+    // Count paid orders (online payment successful OR delivered COD)
+    const paidOrders = orders.filter(
+      (o) => o.paymentStatus === 'successful' || (o.paymentMethod === 'cod' && o.orderStatus === 'Delivered')
+    );
+    const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.finalTotal || 0), 0);
+    const aov = paidOrders.length > 0 ? Math.round(totalRevenue / paidOrders.length) : 0;
     const wholesaleOrders = orders.filter((o) =>
       o.items && o.items.some((i) => (i.appliedTierLabel && i.appliedTierLabel.includes('Wholesale')) || i.quantity >= 3)
     ).length;

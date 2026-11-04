@@ -41,16 +41,16 @@ export const CheckoutPage: React.FC = () => {
   const [deliverySpeed, setDeliverySpeed] = useState<'express' | 'standard'>('express');
   
   // Payment methods: 'upi' | 'card' | 'netbanking' | 'cod'
-  const [paymentType, setPaymentType] = useState<'upi' | 'card' | 'netbanking' | 'cod'>('upi');
+  const [paymentType, setPaymentType] = useState<'upi' | 'card' | 'netbanking' | 'cod'>('cod');
   const [upiMethod, setUpiMethod] = useState<'qr' | 'id'>('qr');
-  const [upiId, setUpiId] = useState('9812345678@paytm');
+  const [upiId, setUpiId] = useState('');
   const [selectedUpiApp, setSelectedUpiApp] = useState<'gpay' | 'phonepe' | 'paytm' | 'bhim'>('phonepe');
   
   // Card details
-  const [cardNumber, setCardNumber] = useState('4532 •••• •••• 8821');
-  const [cardExpiry, setCardExpiry] = useState('08/29');
-  const [cardCvv, setCardCvv] = useState('834');
-  const [cardName, setCardName] = useState(user?.displayName || 'Valued Customer');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardName, setCardName] = useState(user?.displayName || '');
   
   // Netbanking
   const [selectedBank, setSelectedBank] = useState('HDFC Bank');
@@ -64,9 +64,9 @@ export const CheckoutPage: React.FC = () => {
   const [line1, setLine1] = useState('');
   const [line2, setLine2] = useState('');
   const [landmark, setLandmark] = useState('');
-  const [city, setCity] = useState('Bengaluru');
-  const [state, setState] = useState('Karnataka');
-  const [pincode, setPincode] = useState('560034');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [pincode, setPincode] = useState('');
   const [addressType, setAddressType] = useState<'home' | 'work' | 'other'>('home');
 
   useEffect(() => {
@@ -110,26 +110,40 @@ export const CheckoutPage: React.FC = () => {
       let shippingAddress: Address;
 
       if (isAddingNewAddress || !selectedAddressId || !user) {
-        if (!fullName.trim() || !phone.trim() || !line1.trim() || !pincode.trim()) {
-          setErrorMessage('Please fill in your Full Name, Mobile Number, Address, and Pincode.');
+        if (!fullName.trim() || !phone.trim() || !line1.trim() || !city.trim() || !state.trim() || !pincode.trim()) {
+          setErrorMessage('Please fill in all required fields: Full Name, 10-digit Mobile Number, Address, City, State, and 6-digit Pincode.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const cleanPhone = phone.trim().replace(/^(\+91|91|0)/, '');
+        if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+          setErrorMessage('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const cleanPincode = pincode.trim();
+        if (!/^\d{6}$/.test(cleanPincode)) {
+          setErrorMessage('Please enter a valid 6-digit Indian postal code (pincode).');
           setIsSubmitting(false);
           return;
         }
 
         // Automatic Customer Login: Take login & address once
         if (!user) {
-          await login(phone.trim(), fullName.trim());
+          await login(cleanPhone, fullName.trim());
         }
 
         shippingAddress = addAddress({
           fullName: fullName.trim(),
-          phone: phone.trim(),
+          phone: cleanPhone,
           line1: line1.trim(),
           line2: line2.trim(),
           landmark: landmark.trim(),
           city: city.trim(),
           state: state.trim(),
-          pincode: pincode.trim(),
+          pincode: cleanPincode,
           addressType,
           isDefault: true,
         });

@@ -488,25 +488,11 @@ export const InventoryAdminPage: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  required
-                  value={enteredNumber}
-                  onChange={(e) => setEnteredNumber(Number(e.target.value))}
+                  placeholder="0"
+                  value={enteredNumber === 0 ? '' : enteredNumber}
+                  onChange={(e) => setEnteredNumber(e.target.value === '' ? 0 : Number(e.target.value))}
                   className="w-full rounded-xl border border-slate-300 bg-white p-2.5 font-black text-slate-900 text-sm outline-none focus:border-emerald-500"
                 />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Reason for Audit Log</label>
-                <select
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 font-medium text-slate-700 text-xs outline-none focus:border-emerald-500"
-                >
-                  <option value="restock">Warehouse Replenishment Shipment</option>
-                  <option value="manual_adjustment">Physical Count Reconciliation</option>
-                  <option value="damaged">Damaged or Expired Stock Removal</option>
-                  <option value="order_cancellation">Customer Order Return / Restock</option>
-                </select>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">

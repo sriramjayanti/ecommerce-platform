@@ -22,24 +22,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [addresses, setAddresses] = useState<Address[]>(() => {
-    const saved = localStorage.getItem('dailyfresh_addresses');
-    if (saved) return JSON.parse(saved);
-    return [
-      {
-        id: 'addr-default',
-        userId: 'user-default',
-        fullName: 'Rahul Sharma',
-        phone: '9812345678',
-        line1: 'Flat 402, Green Valley Apartments',
-        line2: 'Near Central Park, Ring Road',
-        landmark: 'Opposite State Bank',
-        city: 'Bengaluru',
-        state: 'Karnataka',
-        pincode: '560034',
-        addressType: 'home',
-        isDefault: true,
-      },
-    ];
+    try {
+      const saved = localStorage.getItem('dailyfresh_addresses');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((a: any) => a.fullName !== 'Rahul Sharma' && a.id !== 'addr-default');
+        }
+      }
+    } catch {}
+    return [];
   });
 
   useEffect(() => {

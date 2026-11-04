@@ -39,8 +39,8 @@ export const ProductDetailPage: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string>(fallbackProduct?.images[0] || '');
   const [quantity, setQuantity] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(!fallbackProduct);
-  const [pincode, setPincode] = useState<string>('560034');
-  const [pincodeMessage, setPincodeMessage] = useState<string>('FREE Delivery by Tomorrow 8 PM to Bengaluru 560034');
+  const [pincode, setPincode] = useState<string>('');
+  const [pincodeMessage, setPincodeMessage] = useState<string>('');
   const [reviews, setReviews] = useState<Review[]>([]);
   const [frequentlyBought, setFrequentlyBought] = useState<Product[]>(
     INITIAL_PRODUCTS.filter((p) => p.id !== fallbackProduct?.id).slice(0, 2)
@@ -139,7 +139,7 @@ export const ProductDetailPage: React.FC = () => {
   const handlePincodeCheck = (e: React.FormEvent) => {
     e.preventDefault();
     if (pincode.length === 6) {
-      setPincodeMessage(`✓ In Stock: FREE Express Delivery by Tomorrow 8 PM to ${pincode}`);
+      setPincodeMessage(`✓ In Stock: Available for delivery to ${pincode}`);
     } else {
       setPincodeMessage('Please enter a valid 6-digit postal code.');
     }
@@ -366,10 +366,6 @@ export const ProductDetailPage: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
-                  <Truck className="h-3.5 w-3.5" />
-                  <span>FREE Same-Day Delivery available</span>
-                </p>
               </div>
 
               {/* Delivery Pincode Checker */}
@@ -404,13 +400,13 @@ export const ProductDetailPage: React.FC = () => {
                   <span className="inline-block rounded-md bg-rose-100 text-rose-800 px-2.5 py-1 text-[11px] font-black uppercase">
                     Currently Out of Stock
                   </span>
-                ) : selectedVariant.stock <= Math.max(selectedVariant.lowStockThreshold || 0, 15) ? (
+                ) : selectedVariant.stock < 15 ? (
                   <span className="inline-block rounded-md bg-amber-100 text-amber-800 px-2.5 py-1 text-[11px] font-black">
                     Only {selectedVariant.stock} left in stock - order soon!
                   </span>
                 ) : (
                   <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-2.5 py-1 text-[11px] font-black uppercase">
-                    In Stock ({selectedVariant.stock} available)
+                    In Stock
                   </span>
                 )}
 

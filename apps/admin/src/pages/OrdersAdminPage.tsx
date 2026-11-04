@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Order, OrderStatus, ORDER_STATUS_STEPS, dataStore } from '@ecommerce/shared';
+import { PrintableTaxInvoice } from '../components/PrintableTaxInvoice';
 import {
   ShoppingBag,
   CheckCircle2,
@@ -501,82 +502,9 @@ export const OrdersAdminPage: React.FC = () => {
         </div>
       )}
 
-      {/* GST Invoice Modal */}
+      {/* GST Tax Invoice Modal */}
       {invoiceOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl space-y-6 my-8 text-xs text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-              <div>
-                <h2 className="text-lg font-black text-emerald-700">TAX INVOICE</h2>
-                <span className="text-[11px] text-slate-500">DailyFresh & Wholesale Mart Pvt. Ltd.</span>
-              </div>
-              <button onClick={() => setInvoiceOrder(null)} className="text-slate-400 hover:text-slate-600">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-slate-600">
-              <div>
-                <span className="font-bold text-slate-900 block">Invoice Details</span>
-                <p>Invoice #: INV-{invoiceOrder.orderNumber}</p>
-                <p>Order Date: {new Date(invoiceOrder.createdAt).toLocaleDateString()}</p>
-                <p>Payment: {invoiceOrder.paymentMethod.toUpperCase()} ({invoiceOrder.paymentStatus})</p>
-              </div>
-              <div>
-                <span className="font-bold text-slate-900 block">Billed To</span>
-                <p className="font-bold">{invoiceOrder.customerName}</p>
-                <p>{invoiceOrder.customerPhone}</p>
-                {invoiceOrder.shippingAddress && (
-                  <p>{invoiceOrder.shippingAddress.line1}, {invoiceOrder.shippingAddress.city}</p>
-                )}
-              </div>
-            </div>
-
-            <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
-              <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-                <tr>
-                  <th className="p-2.5">Item</th>
-                  <th className="p-2.5">Qty</th>
-                  <th className="p-2.5">Price</th>
-                  <th className="p-2.5 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {invoiceOrder.items.map((it, idx) => (
-                  <tr key={idx}>
-                    <td className="p-2.5 font-medium">{it.title}</td>
-                    <td className="p-2.5">{it.quantity}</td>
-                    <td className="p-2.5">₹{it.unitPrice}</td>
-                    <td className="p-2.5 text-right font-bold">₹{it.lineTotal}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="text-right space-y-1 font-medium text-slate-600">
-              <p>Subtotal: <span className="font-bold text-slate-900">₹{invoiceOrder.subtotal}</span></p>
-              <p>Delivery: <span className="font-bold text-slate-900">₹{invoiceOrder.deliveryCharge}</span></p>
-              <p className="text-sm font-black text-slate-900 border-t border-slate-200 pt-2">
-                Total Amount: <span className="text-emerald-700">₹{invoiceOrder.finalTotal}</span>
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                onClick={() => window.print()}
-                className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white shadow-xs hover:bg-emerald-700 transition"
-              >
-                Print / Save PDF
-              </button>
-              <button
-                onClick={() => setInvoiceOrder(null)}
-                className="rounded-xl bg-slate-100 px-4 py-2 font-bold text-slate-700 hover:bg-slate-200 transition"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <PrintableTaxInvoice order={invoiceOrder} onClose={() => setInvoiceOrder(null)} />
       )}
     </div>
   );

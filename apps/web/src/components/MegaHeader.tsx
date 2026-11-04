@@ -63,8 +63,8 @@ export const MegaHeader: React.FC = () => {
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
 
   // Pincode
-  const [pincode, setPincode] = useState('560034');
-  const [pincodeCity, setPincodeCity] = useState('Bengaluru');
+  const [pincode, setPincode] = useState('');
+  const [pincodeCity, setPincodeCity] = useState('');
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -173,7 +173,7 @@ export const MegaHeader: React.FC = () => {
             <MapPin className="h-3.5 w-3.5 text-amber-400 flex-shrink-0 group-hover:scale-110 transition" />
             <span className="text-[11px] text-slate-400 hidden sm:inline">Deliver to</span>
             <span className="font-bold text-white text-[11px] underline decoration-dotted underline-offset-2">
-              {defaultAddress ? `${defaultAddress.city} ${defaultAddress.pincode}` : `${pincodeCity} ${pincode}`}
+              {defaultAddress ? `${defaultAddress.city} ${defaultAddress.pincode}` : pincodeCity ? `${pincodeCity} ${pincode}` : 'Select Location'}
             </span>
             <ChevronDown className="h-3 w-3 text-slate-400" />
           </button>
@@ -181,7 +181,7 @@ export const MegaHeader: React.FC = () => {
           {/* Center Announcement */}
           <div className="hidden lg:flex items-center gap-2 text-[11px] text-amber-300 font-semibold">
             <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Farm Fresh Groceries & Wholesale Savings • Same-Day 2-Hour Doorstep Delivery</span>
+            <span>Farm Fresh Groceries & Wholesale Savings • Quality Assured Daily Essentials</span>
           </div>
 
           {/* Right Links */}

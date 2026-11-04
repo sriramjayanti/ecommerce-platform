@@ -27,7 +27,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const hasWholesaleTiers = product.isWholesaleEnabled && (defaultVariant?.pricingTiers?.length || 0) > 1;
   const stock = defaultVariant?.stock ?? 0;
   const isOutOfStock = stock <= 0;
-  const isLowStock = stock > 0 && stock <= Math.max(defaultVariant?.lowStockThreshold || 0, 15);
+  const isLowStock = stock > 0 && stock < 15;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -157,16 +157,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               </span>
             ) : (
               <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-extrabold truncate max-w-full">
-                In Stock ({stock} available)
+                In Stock
               </span>
             )}
           </div>
-
-          {/* Prime Fast Delivery Tag */}
-          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-600 flex items-center gap-1 truncate">
-            <Truck className="h-3 w-3 text-emerald-600 flex-shrink-0" />
-            <span className="truncate">{product.deliveryTag || 'FREE Delivery by Tomorrow'}</span>
-          </p>
 
           {/* Add to Cart CTA Button */}
           <button

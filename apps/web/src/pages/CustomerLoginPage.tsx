@@ -24,6 +24,7 @@ export const CustomerLoginPage: React.FC = () => {
 
   const [loginPhone, setLoginPhone] = useState('');
   const [loginName, setLoginName] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // If already logged in, redirect
@@ -59,9 +60,14 @@ export const CustomerLoginPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginPhone.trim()) return;
+    setLoginError(null);
+    const cleanPhone = loginPhone.trim().replace(/^(\+91|91|0)/, '');
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setLoginError('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).');
+      return;
+    }
     setLoading(true);
-    login(loginPhone.trim(), loginName.trim() || 'Valued Customer');
+    login(cleanPhone, loginName.trim() || 'Valued Customer');
     setLoading(false);
     navigate('/');
   };
@@ -167,6 +173,11 @@ export const CustomerLoginPage: React.FC = () => {
             </div>
 
             {/* Manual Form */}
+            {loginError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">
+                {loginError}
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">

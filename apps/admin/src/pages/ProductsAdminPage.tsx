@@ -139,17 +139,14 @@ export const ProductsAdminPage: React.FC = () => {
       ...variants,
       {
         id: `var-${Date.now()}`,
-        name: '500g Pack',
+        name: '',
         sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
-        weightOrSize: '500g',
-        mrp: 90,
-        basePrice: 75,
-        stock: 50,
-        lowStockThreshold: 15,
-        pricingTiers: [
-          { id: `t1-${Date.now()}`, minQty: 1, maxQty: 4, unitPrice: 75, label: 'Retail (1–4)' },
-          { id: `t2-${Date.now()}`, minQty: 5, maxQty: null, unitPrice: 68, label: 'Wholesale (5+)' },
-        ],
+        weightOrSize: '',
+        mrp: 0,
+        basePrice: 0,
+        stock: 0,
+        lowStockThreshold: 10,
+        pricingTiers: [],
       },
     ]);
   };
@@ -169,19 +166,26 @@ export const ProductsAdminPage: React.FC = () => {
     const v = updated[variantIndex];
     const tiers = v.pricingTiers || [];
     const lastTier = tiers[tiers.length - 1];
-    const nextMin = lastTier ? (lastTier.maxQty ? lastTier.maxQty + 1 : lastTier.minQty + 5) : 1;
-    const nextPrice = lastTier ? Math.max(1, lastTier.unitPrice - 5) : Math.max(1, v.basePrice - 10);
+    
+    let nextMin = 5;
+    let nextMax: number | null = 10;
+    let nextPrice = v.basePrice > 0 ? Math.round(v.basePrice * 0.9) : 0;
 
-    if (lastTier && lastTier.maxQty === null) {
-      lastTier.maxQty = nextMin - 1;
+    if (lastTier) {
+      nextMin = lastTier.maxQty ? lastTier.maxQty + 1 : lastTier.minQty + 5;
+      nextMax = nextMin + 9;
+      nextPrice = Math.max(0, lastTier.unitPrice - 5);
+      if (lastTier.maxQty === null) {
+        lastTier.maxQty = nextMin - 1;
+      }
     }
 
     tiers.push({
       id: `tier-${Date.now()}`,
       minQty: nextMin,
-      maxQty: null,
+      maxQty: nextMax,
       unitPrice: nextPrice,
-      label: `Wholesale Slab (${nextMin}+)`,
+      label: nextMax ? `${nextMin}–${nextMax} units` : `${nextMin}+ units`,
     });
     v.pricingTiers = tiers;
     setVariants(updated);
@@ -718,64 +722,92 @@ export const ProductsAdminPage: React.FC = () => {
                         </div>
 
                         <div className="space-y-2">
-                          {(v.pricingTiers || []).map((t, tIdx) => (
-                            <div key={t.id || tIdx} className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                placeholder="Min"
-                                value={t.minQty}
-                                onChange={(e) => {
-                                  const updated = [...variants];
-                                  updated[vIdx].pricingTiers[tIdx].minQty = Number(e.target.value);
-                                  setVariants(updated);
-                                }}
-                                className="w-16 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-900 text-center font-bold"
-                              />
-                              <span className="text-slate-500">to</span>
-                              <input
-                                type="number"
-                                placeholder="Max"
-                                value={t.maxQty ?? ''}
-                                onChange={(e) => {
-                                  const updated = [...variants];
-                                  const val = e.target.value === '' ? null : Number(e.target.value);
-                                  updated[vIdx].pricingTiers[tIdx].maxQty = val;
-                                  setVariants(updated);
-                                }}
-                                className="w-20 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-900 text-center"
-                              />
-                              <span className="text-slate-500">→ ₹</span>
-                              <input
-                                type="number"
-                                placeholder="Price"
-                                value={t.unitPrice}
-                                onChange={(e) => {
-                                  const updated = [...variants];
-                                  updated[vIdx].pricingTiers[tIdx].unitPrice = Number(e.target.value);
-                                  setVariants(updated);
-                                }}
-                                className="w-20 rounded-lg border border-slate-300 bg-white p-1.5 text-emerald-700 font-bold"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Label (e.g. Wholesale 10+)"
-                                value={t.label || ''}
-                                onChange={(e) => {
-                                  const updated = [...variants];
-                                  updated[vIdx].pricingTiers[tIdx].label = e.target.value;
-                                  setVariants(updated);
-                                }}
-                                className="flex-1 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-900"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveTier(vIdx, tIdx)}
-                                className="text-slate-400 hover:text-rose-600 p-1"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ))}
+                          {(v.pricingTiers || []).map((t, tIdx) => {
+                            const discountPercent = v.basePrice > 0 ? Math.round(((v.basePrice - t.unitPrice) / v.basePrice) * 100) : 0;
+                            return (
+                              <div key={t.id || tIdx} className="flex flex-wrap items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
+                                <span className="text-[11px] font-bold text-slate-500">Qty:</span>
+                                <input
+                                  type="number"
+                                  placeholder="Min"
+                                  value={t.minQty}
+                                  onChange={(e) => {
+                                    const updated = [...variants];
+                                    const val = Number(e.target.value);
+                                    updated[vIdx].pricingTiers[tIdx].minQty = val;
+                                    const maxQ = updated[vIdx].pricingTiers[tIdx].maxQty;
+                                    updated[vIdx].pricingTiers[tIdx].label = maxQ ? `${val}–${maxQ} units` : `${val}+ units`;
+                                    setVariants(updated);
+                                  }}
+                                  className="w-16 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-900 text-center font-bold text-xs"
+                                />
+                                <span className="text-slate-400 text-xs">to</span>
+                                <input
+                                  type="number"
+                                  placeholder="Max"
+                                  value={t.maxQty ?? ''}
+                                  onChange={(e) => {
+                                    const updated = [...variants];
+                                    const val = e.target.value === '' ? null : Number(e.target.value);
+                                    updated[vIdx].pricingTiers[tIdx].maxQty = val;
+                                    const minQ = updated[vIdx].pricingTiers[tIdx].minQty;
+                                    updated[vIdx].pricingTiers[tIdx].label = val ? `${minQ}–${val} units` : `${minQ}+ units`;
+                                    setVariants(updated);
+                                  }}
+                                  className="w-16 rounded-lg border border-slate-300 bg-white p-1.5 text-slate-900 text-center text-xs"
+                                />
+                                <span className="text-slate-400 text-xs">→ ₹</span>
+                                <input
+                                  type="number"
+                                  placeholder="Price"
+                                  value={t.unitPrice === 0 ? '' : t.unitPrice}
+                                  onChange={(e) => {
+                                    const updated = [...variants];
+                                    updated[vIdx].pricingTiers[tIdx].unitPrice = e.target.value === '' ? 0 : Number(e.target.value);
+                                    setVariants(updated);
+                                  }}
+                                  className="w-20 rounded-lg border border-slate-300 bg-white p-1.5 text-emerald-700 font-bold text-xs"
+                                />
+                                <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 text-xs">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="90"
+                                    placeholder="0"
+                                    value={discountPercent > 0 ? discountPercent : ''}
+                                    onChange={(e) => {
+                                      const disc = Number(e.target.value);
+                                      const updated = [...variants];
+                                      if (v.basePrice > 0) {
+                                        updated[vIdx].pricingTiers[tIdx].unitPrice = Math.max(0, Math.round(v.basePrice * (1 - disc / 100)));
+                                      }
+                                      setVariants(updated);
+                                    }}
+                                    className="w-10 bg-transparent text-center font-bold text-amber-900 outline-none text-xs"
+                                  />
+                                  <span className="text-[10px] font-bold text-amber-800">% off</span>
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="Label (e.g. 5–10 units)"
+                                  value={t.label || ''}
+                                  onChange={(e) => {
+                                    const updated = [...variants];
+                                    updated[vIdx].pricingTiers[tIdx].label = e.target.value;
+                                    setVariants(updated);
+                                  }}
+                                  className="flex-1 min-w-[120px] rounded-lg border border-slate-300 bg-white p-1.5 text-slate-900 text-xs"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTier(vIdx, tIdx)}
+                                  className="text-slate-400 hover:text-rose-600 p-1"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

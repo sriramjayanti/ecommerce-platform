@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { Product, Category, Banner, INITIAL_PRODUCTS, INITIAL_CATEGORIES, INITIAL_BANNERS, dataStore } from '@ecommerce/shared';
 import { CategoryPillsBar } from '../components/CategoryPillsBar';
 import { HeroDealsCarousel } from '../components/HeroDealsCarousel';
-import { BankOffersBar } from '../components/BankOffersBar';
 import { LightningDealsSection } from '../components/LightningDealsSection';
 import { ProductCarouselRow } from '../components/ProductCarouselRow';
 import { ProductCard } from '../components/ProductCard';
@@ -119,9 +118,6 @@ export const HomePage: React.FC = () => {
 
       {/* 2. Hero Deals Multi-Slide Carousel */}
       {!isSearchActive && <HeroDealsCarousel banners={banners} />}
-
-      {/* 3. Bank Offers & EMI Ticker Strip */}
-      <BankOffersBar />
 
       {/* 4. Lightning Flash Deals Section with Timer */}
       {!isSearchActive && <LightningDealsSection products={products} />}

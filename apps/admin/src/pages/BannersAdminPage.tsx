@@ -23,28 +23,40 @@ import {
 
 const BANNER_PRESETS = [
   {
-    title: 'Daily Staples & Wholesale Grains',
-    subtitle: 'Save up to 25% on 10+ and 25+ bulk packs',
+    title: 'Daily Groceries & Supermart Savings',
+    subtitle: 'Direct wholesale rates on rice, atta, dals and pantry essentials',
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=80',
-    link: '/category/atta-rice-dals',
+    link: '/category/groceries',
   },
   {
-    title: 'Snack Fest & Munchies Carton Deals',
-    subtitle: 'Direct wholesale rates on Namkeen & Biscuits',
-    image: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=1200&auto=format&fit=crop&q=80',
-    link: '/category/snacks-namkeen-biscuits',
+    title: 'Farm-Fresh Vegetables & Organic Greens',
+    subtitle: 'Harvested daily at dawn, crisp and nutrient-rich',
+    image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=1200&auto=format&fit=crop&q=80',
+    link: '/category/vegetables',
+  },
+  {
+    title: 'Seasonal Orchard Fruits & Berries',
+    subtitle: 'Naturally ripened, fresh and juicy sweet fruits',
+    image: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=1200&auto=format&fit=crop&q=80',
+    link: '/category/fruits',
   },
   {
     title: 'Pure Desi Cow Ghee & Cold Pressed Oils',
-    subtitle: 'Curd churned A2 Bilona ghee at bulk rates',
+    subtitle: 'Curd churned A2 Bilona ghee at bulk wholesale slabs',
     image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=1200&auto=format&fit=crop&q=80',
     link: '/category/cooking-oils-ghee',
   },
   {
-    title: 'California Almonds & Goan Cashews',
-    subtitle: 'Jumbo grade hand-sorted dry fruits',
-    image: 'https://images.unsplash.com/photo-1596591606975-97ee5cef3a1e?w=1200&auto=format&fit=crop&q=80',
-    link: '/category/dry-fruits-nuts-seeds',
+    title: 'Fresh Milk, Malai Paneer & Dairy',
+    subtitle: 'Pure country dairy products delivered fresh every day',
+    image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=1200&auto=format&fit=crop&q=80',
+    link: '/category/dairy-eggs',
+  },
+  {
+    title: 'Snack Fest, Namkeen & Biscuit Cartons',
+    subtitle: 'Save up to 30% with bulk quantity wholesale discounts',
+    image: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=1200&auto=format&fit=crop&q=80',
+    link: '/category/snacks',
   },
 ];
 
