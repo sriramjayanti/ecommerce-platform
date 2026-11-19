@@ -12,6 +12,8 @@ import {
   Zap,
   Filter,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Printer,
   X,
   Search,
@@ -21,6 +23,7 @@ import {
   ArrowLeft,
   Package,
   Store,
+  Check,
 } from 'lucide-react';
 
 const EXTENDED_STATUS_STEPS: OrderStatus[] = [
@@ -48,6 +51,51 @@ export const OrdersAdminPage: React.FC = () => {
   const [enteredPin, setEnteredPin] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [pinSuccess, setPinSuccess] = useState<string | null>(null);
+
+  // Expand/collapse items for specific orders in table
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+  const [allExpanded, setAllExpanded] = useState<boolean>(false);
+
+  // Packed checklist state in Order Details modal
+  const [packedItems, setPackedItems] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (selectedOrder) {
+      const isAlreadyPacked = ['Packed', 'Dispatched', 'Out for Delivery', 'Delivered'].includes(selectedOrder.orderStatus);
+      const initial: Record<string, boolean> = {};
+      selectedOrder.items?.forEach((_, idx) => {
+        initial[`${selectedOrder.id}-${idx}`] = isAlreadyPacked;
+      });
+      setPackedItems(initial);
+    }
+  }, [selectedOrder]);
+
+  const toggleItemPacked = (itemKey: string) => {
+    setPackedItems((prev) => ({ ...prev, [itemKey]: !prev[itemKey] }));
+  };
+
+  const markAllItemsPacked = (packed: boolean) => {
+    if (!selectedOrder) return;
+    const updated: Record<string, boolean> = {};
+    selectedOrder.items?.forEach((_, idx) => {
+      updated[`${selectedOrder.id}-${idx}`] = packed;
+    });
+    setPackedItems(updated);
+  };
+
+  const toggleAllExpanded = () => {
+    const next = !allExpanded;
+    setAllExpanded(next);
+    const updated: Record<string, boolean> = {};
+    orders.forEach((o) => {
+      updated[o.id] = next;
+    });
+    setExpandedOrders(updated);
+  };
+
+  const toggleOrderExpand = (orderId: string) => {
+    setExpandedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -206,6 +254,16 @@ export const OrdersAdminPage: React.FC = () => {
               </option>
             ))}
           </select>
+
+          <button
+            type="button"
+            onClick={toggleAllExpanded}
+            className="rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition inline-flex items-center gap-1.5 shadow-2xs"
+            title="Expand or collapse items list for all orders"
+          >
+            <Package className="h-3.5 w-3.5 text-emerald-600" />
+            <span>{allExpanded ? 'Collapse All Items' : 'Expand All Items'}</span>
+          </button>
         </div>
       </div>
 
@@ -219,6 +277,7 @@ export const OrdersAdminPage: React.FC = () => {
                 <th className="pb-3">Date & Time</th>
                 <th className="pb-3">Customer</th>
                 <th className="pb-3">Fulfilment</th>
+                <th className="pb-3 min-w-[280px]">Ordered Products (To Pack)</th>
                 <th className="pb-3">Amount</th>
                 <th className="pb-3">Payment</th>
                 <th className="pb-3">Status</th>
@@ -228,11 +287,11 @@ export const OrdersAdminPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-500">Loading orders...</td>
+                  <td colSpan={9} className="py-8 text-center text-slate-500">Loading orders...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-500">
+                  <td colSpan={9} className="py-8 text-center text-slate-500">
                     No orders matching selected filter.
                   </td>
                 </tr>
@@ -274,6 +333,88 @@ export const OrdersAdminPage: React.FC = () => {
                               </span>
                             )}
                           </div>
+                        )}
+                      </td>
+
+                      {/* Ordered Products (To Pack) */}
+                      <td className="py-3.5 min-w-[280px] max-w-[340px]">
+                        {ord.items && ord.items.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {/* Packing Summary Badge */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
+                                <Package className="h-3 w-3 text-emerald-600 flex-shrink-0" />
+                                <span>
+                                  {ord.items.length} {ord.items.length === 1 ? 'item' : 'items'} •{' '}
+                                  {ord.items.reduce((sum, it) => sum + (it.quantity || 1), 0)} units to pack
+                                </span>
+                              </span>
+                              {ord.items.some((i) => i.appliedTierLabel && i.appliedTierLabel.includes('Wholesale')) && (
+                                <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[9px] font-black text-purple-700 border border-purple-200">
+                                  Wholesale
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Items List (Show first 2 or all if expanded) */}
+                            <div className="space-y-1">
+                              {(expandedOrders[ord.id] ? ord.items : ord.items.slice(0, 2)).map((it, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/70 transition"
+                                >
+                                  {it.image ? (
+                                    <img
+                                      src={it.image}
+                                      alt={it.title}
+                                      className="h-8 w-8 rounded-lg object-cover bg-white border border-slate-200 flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-center flex-shrink-0">
+                                      <Package className="h-4 w-4" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-1.5 py-0.2 text-[10px] font-black text-white shadow-2xs flex-shrink-0">
+                                        {it.quantity}x
+                                      </span>
+                                      <span className="font-extrabold text-slate-900 text-xs truncate" title={it.title}>
+                                        {it.title}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium truncate">
+                                      <span>{it.variantName || 'Standard'}</span>
+                                      {it.sku && <span>• SKU: {it.sku}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Expand / Collapse Button if > 2 items */}
+                            {ord.items.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => toggleOrderExpand(ord.id)}
+                                className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline pt-0.5 cursor-pointer"
+                              >
+                                {expandedOrders[ord.id] ? (
+                                  <>
+                                    <ChevronUp className="h-3 w-3" />
+                                    <span>Show less items</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-3 w-3" />
+                                    <span>+{ord.items.length - 2} more items to pack (view all)</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">No items recorded</span>
                         )}
                       </td>
                       <td className="py-3.5">
@@ -523,33 +664,153 @@ export const OrdersAdminPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Items Snapshot */}
-            <div className="border border-slate-200 rounded-2xl overflow-hidden">
-              <div className="bg-slate-50 px-4 py-2.5 font-bold text-slate-700 border-b border-slate-200">
-                Ordered Items ({selectedOrder.items.length})
+            {/* Warehouse Packing & Item Verification Checklist */}
+            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+              <div className="bg-emerald-900 text-white px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-emerald-300" />
+                  <div>
+                    <h4 className="font-black text-sm">Packing & Fulfillment Checklist</h4>
+                    <p className="text-[11px] text-emerald-200">
+                      Verify and pack each ordered item into the parcel before dispatch.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-emerald-800 border border-emerald-700 px-2.5 py-1 rounded-xl text-xs font-black">
+                    {selectedOrder.items?.reduce((sum, it) => sum + (it.quantity || 1), 0)} Units Total
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allChecked = selectedOrder.items.every((_, idx) => packedItems[`${selectedOrder.id}-${idx}`]);
+                      markAllItemsPacked(!allChecked);
+                    }}
+                    className="rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-2.5 py-1 text-xs font-bold transition text-white cursor-pointer"
+                  >
+                    {selectedOrder.items.every((_, idx) => packedItems[`${selectedOrder.id}-${idx}`])
+                      ? 'Uncheck All'
+                      : '✓ Check All as Packed'}
+                  </button>
+                </div>
               </div>
-              <div className="divide-y divide-slate-100">
-                {selectedOrder.items.map((item, idx) => (
-                  <div key={idx} className="p-3.5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {item.image && (
-                        <img src={item.image} alt="" className="h-10 w-10 rounded-lg object-cover bg-slate-50 border border-slate-200" />
-                      )}
-                      <div>
-                        <span className="font-bold text-slate-900 block">{item.title}</span>
-                        <span className="text-slate-500 text-[11px]">
-                          {item.variantName} • Qty: {item.quantity} × ₹{item.unitPrice}
+
+              {/* Progress Bar */}
+              {(() => {
+                const total = selectedOrder.items?.length || 0;
+                const packedCount = selectedOrder.items?.filter((_, idx) => packedItems[`${selectedOrder.id}-${idx}`]).length || 0;
+                const isAllPacked = total > 0 && packedCount === total;
+                const percent = total > 0 ? Math.round((packedCount / total) * 100) : 0;
+
+                return (
+                  <div>
+                    <div className="bg-emerald-50 px-4 py-2 border-b border-emerald-100 flex items-center justify-between text-xs">
+                      <span className="font-bold text-emerald-900">
+                        Packing Progress: {packedCount} of {total} items ready ({percent}%)
+                      </span>
+                      {isAllPacked && (
+                        <span className="font-black text-emerald-700 flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-emerald-300 text-[11px]">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                          Ready for Shipment
                         </span>
-                        {item.appliedTierLabel && (
-                          <span className="block text-[10px] text-emerald-700 font-bold">
-                            Applied: {item.appliedTierLabel}
-                          </span>
+                      )}
+                    </div>
+                    <div className="w-full bg-slate-100 h-1.5">
+                      <div
+                        className="bg-emerald-500 h-1.5 transition-all duration-300"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="divide-y divide-slate-100 bg-white">
+                {selectedOrder.items.map((item, idx) => {
+                  const itemKey = `${selectedOrder.id}-${idx}`;
+                  const isPacked = !!packedItems[itemKey];
+
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => toggleItemPacked(itemKey)}
+                      className={`p-3.5 flex items-center justify-between transition cursor-pointer select-none ${
+                        isPacked ? 'bg-emerald-50/40 hover:bg-emerald-50/70' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Interactive Checkbox */}
+                        <div
+                          className={`flex h-6 w-6 items-center justify-center rounded-lg border-2 transition ${
+                            isPacked
+                              ? 'bg-emerald-600 border-emerald-600 text-white'
+                              : 'border-slate-300 bg-white text-transparent hover:border-emerald-500'
+                          }`}
+                        >
+                          <Check className="h-4 w-4 stroke-[3]" />
+                        </div>
+
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt=""
+                            className="h-11 w-11 rounded-xl object-cover bg-slate-50 border border-slate-200 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="h-11 w-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 text-slate-400">
+                            <Package className="h-5 w-5" />
+                          </div>
                         )}
+
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`font-black text-xs px-2 py-0.5 rounded-md ${
+                                isPacked
+                                  ? 'bg-emerald-100 text-emerald-950 border border-emerald-300'
+                                  : 'bg-amber-100 text-amber-950 border border-amber-300'
+                              }`}
+                            >
+                              QTY: {item.quantity}
+                            </span>
+                            <span
+                              className={`font-extrabold text-sm ${
+                                isPacked ? 'line-through text-slate-500' : 'text-slate-900'
+                              }`}
+                            >
+                              {item.title}
+                            </span>
+                          </div>
+                          <div className="text-slate-500 text-[11px] mt-0.5 flex items-center gap-2">
+                            <span className="font-semibold text-slate-700">{item.variantName}</span>
+                            {item.sku && (
+                              <span>
+                                • SKU: <code className="bg-slate-100 px-1 py-0.2 rounded font-mono">{item.sku}</code>
+                              </span>
+                            )}
+                            <span>• ₹{item.unitPrice} each</span>
+                          </div>
+                          {item.appliedTierLabel && (
+                            <span className="inline-block mt-1 text-[10px] text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded font-bold">
+                              Applied: {item.appliedTierLabel}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="font-black text-slate-900 text-sm block">₹{item.lineTotal}</span>
+                        <span
+                          className={`text-[10px] font-bold inline-block mt-0.5 ${
+                            isPacked ? 'text-emerald-700' : 'text-slate-400'
+                          }`}
+                        >
+                          {isPacked ? 'Packed ✓' : 'Click to check'}
+                        </span>
                       </div>
                     </div>
-                    <span className="font-black text-slate-900">₹{item.lineTotal}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -654,6 +915,41 @@ export const OrdersAdminPage: React.FC = () => {
                 <span className="font-mono font-black text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded text-sm">
                   {verifyingOrder.pickupCode}
                 </span>
+              </div>
+            </div>
+
+            {/* Takeaway Items to Hand Over to Customer */}
+            <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-black text-amber-950 text-xs flex items-center gap-1.5">
+                  <Package className="h-4 w-4 text-amber-700" />
+                  <span>Products to Pack & Hand Over:</span>
+                </span>
+                <span className="text-[10px] font-black text-amber-900 bg-amber-200/90 px-2 py-0.5 rounded border border-amber-300">
+                  {(verifyingOrder.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0)} Units Total
+                </span>
+              </div>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {(verifyingOrder.items || []).map((it, i) => (
+                  <div key={i} className="flex items-center justify-between bg-white/95 p-2 rounded-xl border border-amber-200 text-xs shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      {it.image ? (
+                        <img src={it.image} alt="" className="h-8 w-8 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
+                      ) : (
+                        <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-800 flex-shrink-0">
+                          <Package className="h-4 w-4" />
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-extrabold text-slate-900 block">{it.title}</span>
+                        <span className="text-[10px] text-slate-500 font-medium">{it.variantName}</span>
+                      </div>
+                    </div>
+                    <span className="font-black text-xs text-amber-950 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300">
+                      {it.quantity}x
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 

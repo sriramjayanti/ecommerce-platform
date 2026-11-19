@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   DollarSign,
   ArrowRight,
+  Package,
 } from 'lucide-react';
 
 export const DashboardOverviewPage: React.FC = () => {
@@ -159,6 +160,7 @@ export const DashboardOverviewPage: React.FC = () => {
                 <tr className="border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
                   <th className="pb-3">Order Number</th>
                   <th className="pb-3">Customer</th>
+                  <th className="pb-3 min-w-[240px]">Ordered Products (To Pack)</th>
                   <th className="pb-3">Amount</th>
                   <th className="pb-3">Status</th>
                   <th className="pb-3 text-right">Action</th>
@@ -167,7 +169,7 @@ export const DashboardOverviewPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100">
                 {recentOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400">
+                    <td colSpan={6} className="py-8 text-center text-slate-400">
                       No orders placed yet.
                     </td>
                   </tr>
@@ -178,6 +180,34 @@ export const DashboardOverviewPage: React.FC = () => {
                       <td className="py-3">
                         <span className="font-semibold text-slate-900 block">{ord.customerName}</span>
                         <span className="text-[10px] text-slate-500">{ord.customerPhone}</span>
+                      </td>
+                      <td className="py-3">
+                        {ord.items && ord.items.length > 0 ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
+                              <Package className="h-3 w-3 text-emerald-600" />
+                              <span>{ord.items.reduce((s: number, i: any) => s + (i.quantity || 1), 0)} units to pack</span>
+                            </span>
+                            <div className="space-y-0.5 text-[11px] text-slate-800 font-medium">
+                              {ord.items.slice(0, 2).map((it: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-1.5 truncate max-w-[240px]">
+                                  <span className="font-black text-emerald-700 bg-emerald-100/80 px-1 rounded text-[10px]">
+                                    {it.quantity}x
+                                  </span>
+                                  <span className="font-bold text-slate-900 truncate">{it.title}</span>
+                                  <span className="text-slate-500 text-[10px]">({it.variantName})</span>
+                                </div>
+                              ))}
+                              {ord.items.length > 2 && (
+                                <span className="text-[10px] text-slate-400 font-bold block">
+                                  +{ord.items.length - 2} more items
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">No items recorded</span>
+                        )}
                       </td>
                       <td className="py-3 font-black text-slate-900">₹{ord.finalTotal}</td>
                       <td className="py-3">
