@@ -912,6 +912,11 @@ class UnifiedDataStore {
     const finalTotal = subtotal + deliveryCharge;
     const totalSavings = Math.max(0, totalMrp - subtotal);
 
+    // 4-digit confirmation PIN generated exclusively for Takeaway option (never for home delivery)
+    const pickupCode = isTakeaway
+      ? Math.floor(1000 + Math.random() * 9000).toString()
+      : undefined;
+
     const isCod = payload.paymentMethod === 'cod';
     const initialStatus: OrderStatus = isCod ? 'Placed' : 'Confirmed';
 
@@ -935,6 +940,7 @@ class UnifiedDataStore {
       paymentStatus: isCod ? 'pending' : 'successful',
       paymentId: isCod ? undefined : `PAY-${payload.paymentMethod.toUpperCase()}-${Date.now().toString().slice(-6)}`,
       fulfilmentMethod: payload.fulfilmentMethod || 'delivery',
+      pickupCode,
       orderStatus: initialStatus,
       statusHistory: [
         {
@@ -1081,6 +1087,74 @@ class UnifiedDataStore {
         );
       } catch (err) {
         console.warn('Firestore updateOrderStatus error:', err);
+      }
+    }
+
+    this.broadcast('orders_updated', order);
+    return { success: true, data: order };
+  }
+
+  /**
+   * Admin verification of customer 4-digit code for in-store Takeaway pickup orders
+   */
+  public async verifyPickupCode(
+    orderIdOrNumber: string,
+    enteredCode: string,
+    adminName: string = 'Store Admin'
+  ): Promise<{ success: boolean; error?: string; data?: Order }> {
+    const orders = await this.getOrders();
+    const order = orders.find((o) => o.id === orderIdOrNumber || o.orderNumber === orderIdOrNumber);
+
+    if (!order) {
+      return { success: false, error: 'Order not found.' };
+    }
+
+    if (order.fulfilmentMethod !== 'takeaway') {
+      return { success: false, error: 'This is a home delivery order, not a takeaway pickup.' };
+    }
+
+    if (!order.pickupCode) {
+      return { success: false, error: 'No 4-digit pickup code exists for this order.' };
+    }
+
+    const cleanInput = enteredCode.trim();
+    if (cleanInput !== order.pickupCode) {
+      return {
+        success: false,
+        error: `Incorrect PIN. Entered "${cleanInput}" does not match the order's 4-digit pickup code.`,
+      };
+    }
+
+    // Code matches: update order status to Delivered and mark pickup confirmation
+    const note = `In-store takeaway confirmed via 4-digit PIN (${cleanInput}). Handed over to customer.`;
+    order.orderStatus = 'Delivered';
+    order.pickupVerifiedAt = new Date().toISOString();
+    order.pickupVerifiedBy = adminName;
+    order.statusHistory.push({
+      status: 'Delivered',
+      timestamp: new Date().toISOString(),
+      note,
+      updatedBy: adminName,
+    });
+    order.updatedAt = new Date().toISOString();
+
+    safeSetItem('dailyfresh_orders', JSON.stringify(orders));
+
+    if (typeof window !== 'undefined' && firestore) {
+      try {
+        await setDoc(
+          doc(firestore, 'orders', order.id),
+          {
+            orderStatus: 'Delivered',
+            pickupVerifiedAt: order.pickupVerifiedAt,
+            pickupVerifiedBy: adminName,
+            statusHistory: order.statusHistory,
+            updatedAt: order.updatedAt,
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('Firestore verifyPickupCode sync error:', err);
       }
     }
 

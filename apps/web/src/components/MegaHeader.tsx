@@ -160,53 +160,7 @@ export const MegaHeader: React.FC = () => {
 
   return (
     <>
-      {/* 1. TOP UTILITY STRIP */}
-      <div className="bg-slate-950 text-slate-200 text-xs border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-between">
-          
-          {/* Left: Location / Pincode Delivery Selector */}
-          <button
-            type="button"
-            onClick={() => setLocationModalOpen(true)}
-            className="flex items-center gap-1.5 hover:text-amber-400 transition text-left group"
-          >
-            <MapPin className="h-3.5 w-3.5 text-amber-400 flex-shrink-0 group-hover:scale-110 transition" />
-            <span className="text-[11px] text-slate-400 hidden sm:inline">Deliver to</span>
-            <span className="font-bold text-white text-[11px] underline decoration-dotted underline-offset-2">
-              {defaultAddress ? `${defaultAddress.city} ${defaultAddress.pincode}` : pincodeCity ? `${pincodeCity} ${pincode}` : 'Select Location'}
-            </span>
-            <ChevronDown className="h-3 w-3 text-slate-400" />
-          </button>
-
-          {/* Center Announcement */}
-          <div className="hidden lg:flex items-center gap-2 text-[11px] text-amber-300 font-semibold">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Farm Fresh Groceries & Wholesale Savings • Quality Assured Daily Essentials</span>
-          </div>
-
-          {/* Right Links */}
-          <div className="flex items-center gap-4 text-[11px] font-semibold">
-            <Link
-              to="/order/track"
-              className="hover:text-amber-300 text-amber-200 transition inline-flex items-center gap-1.5"
-            >
-              <Truck className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Track Order</span>
-            </Link>
-            <a
-              href={getAdminUrl()}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-0.5 font-extrabold transition shadow-xs"
-            >
-              <Store className="h-3 w-3" />
-              <span>Admin Console</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. MAIN HEADER BAR WITH HAMBURGER ON LEFT */}
+      {/* MAIN HEADER BAR WITH HAMBURGER ON LEFT */}
       <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 shadow-md">
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4 lg:gap-6">
@@ -395,28 +349,8 @@ export const MegaHeader: React.FC = () => {
               )}
             </div>
 
-            {/* Right Quick Hub: Orders, Account, Wishlist, Cart */}
+            {/* Right Quick Hub: Wishlist, Account, Cart */}
             <div className="flex items-center gap-1.5 sm:gap-3">
-              
-              {/* Returns & Orders */}
-              <Link
-                to="/account?tab=orders"
-                className="hidden lg:flex flex-col text-left px-2.5 py-1 rounded-xl text-slate-200 hover:bg-slate-800 transition leading-tight"
-              >
-                <span className="text-[10px] text-slate-400">Returns</span>
-                <span className="text-xs font-black text-white">& Orders</span>
-              </Link>
-
-              {/* Simple Track Order Live */}
-              <Link
-                to="/order/track"
-                className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-amber-300 border border-slate-700 hover:border-amber-400 transition text-xs font-bold shadow-2xs"
-                title="Live Order Tracking (Updated by Admin Only)"
-              >
-                <Truck className="h-4 w-4 text-emerald-400" />
-                <span>Track Order</span>
-              </Link>
-
               {/* Wishlist Icon Button */}
               <Link
                 to="/account?tab=wishlist"

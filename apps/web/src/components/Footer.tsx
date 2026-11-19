@@ -35,51 +35,6 @@ export const Footer: React.FC = () => {
         <span>Back to top</span>
       </button>
 
-      {/* Trust & Guarantee Strip */}
-      <div className="border-b border-slate-800/80 bg-[#0f141d] py-6">
-        <div className="mx-auto max-w-7xl px-4 grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <Award className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">100% Genuine Products</h4>
-              <p className="text-[11px] text-slate-400">Direct from authorized brands</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              <RotateCcw className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">7 Days Easy Return</h4>
-              <p className="text-[11px] text-slate-400">Hassle-free replacement policy</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <Truck className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">Fast Assured Delivery</h4>
-              <p className="text-[11px] text-slate-400">Free delivery on orders above ₹499</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              <Zap className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">Wholesale Tier Pricing</h4>
-              <p className="text-[11px] text-slate-400">Instant price drops on bulk quantities</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Footer Links Columns */}
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">

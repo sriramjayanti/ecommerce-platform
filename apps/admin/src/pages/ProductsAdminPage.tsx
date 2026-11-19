@@ -108,6 +108,7 @@ export const ProductsAdminPage: React.FC = () => {
         weightOrSize: '',
         mrp: 0,
         basePrice: 0,
+        costPrice: 0,
         stock: 0,
         lowStockThreshold: 10,
         pricingTiers: [],
@@ -129,7 +130,12 @@ export const ProductsAdminPage: React.FC = () => {
     setIsWholesaleEnabled(product.isWholesaleEnabled);
     setIsFeatured(!!product.isFeatured);
     setIsBestSeller(!!product.isBestSeller);
-    setVariants(JSON.parse(JSON.stringify(product.variants)));
+    setVariants(
+      JSON.parse(JSON.stringify(product.variants)).map((v: any) => ({
+        ...v,
+        costPrice: v.costPrice ?? 0,
+      }))
+    );
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -144,6 +150,7 @@ export const ProductsAdminPage: React.FC = () => {
         weightOrSize: '',
         mrp: 0,
         basePrice: 0,
+        costPrice: 0,
         stock: 0,
         lowStockThreshold: 10,
         pricingTiers: [],
@@ -376,7 +383,7 @@ export const ProductsAdminPage: React.FC = () => {
                 <th className="pb-3">Product</th>
                 <th className="pb-3">Category</th>
                 <th className="pb-3">Variants</th>
-                <th className="pb-3">Base Price</th>
+                <th className="pb-3">Selling & Profit / Loss</th>
                 <th className="pb-3">Stock Level</th>
                 <th className="pb-3">Wholesale Tiers</th>
                 <th className="pb-3 text-right">Actions</th>
@@ -422,7 +429,36 @@ export const ProductsAdminPage: React.FC = () => {
                       <td className="py-3.5 text-slate-600 font-medium">
                         {p.variants.map((v) => v.name).join(', ')}
                       </td>
-                      <td className="py-3.5 font-black text-slate-900">₹{defaultVar?.basePrice}</td>
+                      <td className="py-3.5">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-black text-slate-900 text-xs">₹{defaultVar?.basePrice}</span>
+                            <span className="text-[10px] text-slate-500 font-semibold">(Selling)</span>
+                          </div>
+                          {defaultVar?.costPrice ? (
+                            <div className="text-[10px] space-y-0.5">
+                              <span className="text-slate-500 font-medium block">
+                                Net Cost: ₹{defaultVar.costPrice}
+                              </span>
+                              {defaultVar.basePrice > defaultVar.costPrice ? (
+                                <span className="inline-block rounded px-1.5 py-0.2 bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                                  +₹{defaultVar.basePrice - defaultVar.costPrice} Profit ({Math.round(((defaultVar.basePrice - defaultVar.costPrice) / defaultVar.basePrice) * 100)}%)
+                                </span>
+                              ) : defaultVar.basePrice < defaultVar.costPrice ? (
+                                <span className="inline-block rounded px-1.5 py-0.2 bg-rose-50 text-rose-800 font-bold border border-rose-200">
+                                  -₹{defaultVar.costPrice - defaultVar.basePrice} Loss ({Math.round(((defaultVar.costPrice - defaultVar.basePrice) / defaultVar.costPrice) * 100)}%)
+                                </span>
+                              ) : (
+                                <span className="inline-block rounded px-1.5 py-0.2 bg-slate-100 text-slate-700 font-bold">
+                                  Break-even (₹0)
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic block">Cost not set</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3.5">
                         <span
                           className={`font-black ${
@@ -446,21 +482,25 @@ export const ProductsAdminPage: React.FC = () => {
                           <span className="text-slate-400 text-[11px]">Retail Only</span>
                         )}
                       </td>
-                      <td className="py-3.5 text-right space-x-2">
-                        <button
-                          onClick={() => openEditModal(p)}
-                          className="rounded-lg bg-slate-100 p-2 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 transition border border-slate-200"
-                          title="Edit product"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(p.id)}
-                          className="rounded-lg bg-slate-100 p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition border border-slate-200"
-                          title="Archive product"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                      <td className="py-3.5 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-5 sm:gap-6 justify-end">
+                          <button
+                            onClick={() => openEditModal(p)}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 text-xs font-bold transition shadow-2xs active:scale-95"
+                            title="Edit product details & pricing"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p.id)}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-700 border border-slate-200 hover:border-rose-200 px-2.5 py-1.5 text-xs font-semibold transition active:scale-95"
+                            title="Delete this product"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -629,7 +669,7 @@ export const ProductsAdminPage: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                       <div>
                         <label className="block text-[11px] text-slate-600 font-bold mb-1">Variant Name</label>
                         <input
@@ -673,7 +713,7 @@ export const ProductsAdminPage: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-600 font-bold mb-1">Base Price (₹) *</label>
+                        <label className="block text-[11px] text-emerald-800 font-bold mb-1">Selling Price (₹) *</label>
                         <input
                           type="number"
                           required
@@ -684,7 +724,24 @@ export const ProductsAdminPage: React.FC = () => {
                             updated[vIdx].basePrice = e.target.value === '' ? 0 : Number(e.target.value);
                             setVariants(updated);
                           }}
-                          className="w-full rounded-lg border border-slate-300 bg-white p-2 text-emerald-700 font-bold"
+                          className="w-full rounded-lg border border-emerald-300 bg-white p-2 text-emerald-700 font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-blue-800 font-bold mb-1">
+                          Net Amount (Cost ₹)
+                        </label>
+                        <input
+                          type="number"
+                          value={v.costPrice === 0 ? '' : (v.costPrice ?? '')}
+                          placeholder="0"
+                          onChange={(e) => {
+                            const updated = [...variants];
+                            updated[vIdx].costPrice = e.target.value === '' ? 0 : Number(e.target.value);
+                            setVariants(updated);
+                          }}
+                          className="w-full rounded-lg border border-blue-300 bg-white p-2 text-blue-900 font-bold"
+                          title="Purchase cost/Net amount per unit (Admin only)"
                         />
                       </div>
                       <div>
@@ -702,6 +759,79 @@ export const ProductsAdminPage: React.FC = () => {
                         />
                       </div>
                     </div>
+
+                    {/* Real-time Profit & Loss Live Analysis (Admin Only) */}
+                    {(() => {
+                      const sell = v.basePrice || 0;
+                      const cost = v.costPrice || 0;
+                      const diff = sell - cost;
+                      const margin = sell > 0 ? ((diff / sell) * 100).toFixed(1) : '0';
+
+                      if (cost > 0 && sell > 0) {
+                        if (diff > 0) {
+                          return (
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                              <div>
+                                <div className="flex items-center gap-1.5 font-black text-emerald-800">
+                                  <span>📈 Net Profit: +₹{diff.toLocaleString('en-IN')} per unit</span>
+                                  <span className="rounded bg-emerald-600 px-1.5 py-0.2 text-[10px] text-white font-extrabold">
+                                    +{margin}% Margin
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-emerald-700 mt-0.5">
+                                  Selling at ₹{sell} vs Net Cost ₹{cost} yields ₹{diff} gross profit per unit sold.
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-bold text-emerald-600 bg-white/80 px-2 py-1 rounded-md border border-emerald-200 self-start sm:self-auto">
+                                🔒 Admin Only
+                              </span>
+                            </div>
+                          );
+                        } else if (diff < 0) {
+                          const lossAmount = Math.abs(diff);
+                          const lossMargin = Math.abs(Number(margin));
+                          return (
+                            <div className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs text-rose-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                              <div>
+                                <div className="flex items-center gap-1.5 font-black text-rose-700">
+                                  <span>📉 Net Loss: -₹{lossAmount.toLocaleString('en-IN')} per unit</span>
+                                  <span className="rounded bg-rose-600 px-1.5 py-0.2 text-[10px] text-white font-extrabold">
+                                    -{lossMargin}% Loss
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-rose-800 mt-0.5 font-semibold">
+                                  ⚠️ Selling Price (₹{sell}) is lower than Net Purchase Cost (₹{cost}). You will lose ₹{lossAmount} per unit!
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-bold text-rose-600 bg-white/80 px-2 py-1 rounded-md border border-rose-200 self-start sm:self-auto">
+                                🔒 Admin Only
+                              </span>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-950 flex items-center justify-between">
+                              <span className="font-bold">
+                                ⚖️ Break-even: ₹0 Profit/Loss (Selling Price equals Net Cost of ₹{cost})
+                              </span>
+                              <span className="text-[10px] font-bold text-amber-700 bg-white px-2 py-0.5 rounded border border-amber-200">
+                                🔒 Admin Only
+                              </span>
+                            </div>
+                          );
+                        }
+                      }
+                      return (
+                        <div className="rounded-xl border border-slate-200 bg-slate-100/70 p-2.5 text-[11px] text-slate-600 flex items-center justify-between">
+                          <span>
+                            💡 Enter <strong className="text-slate-800">Net Amount (Cost ₹)</strong> to calculate and compare profit/loss with selling price.
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-semibold">
+                            🔒 Admin Only (Never shown to customers)
+                          </span>
+                        </div>
+                      );
+                    })()}
 
                     {/* Wholesale Tiers */}
                     {isWholesaleEnabled && (

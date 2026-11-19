@@ -43,11 +43,47 @@ export const OrdersAdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [adminNoteInput, setAdminNoteInput] = useState<string>('');
 
+  // 4-Digit Takeaway PIN verification states
+  const [verifyingOrder, setVerifyingOrder] = useState<Order | null>(null);
+  const [enteredPin, setEnteredPin] = useState<string>('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinSuccess, setPinSuccess] = useState<string | null>(null);
+
   const fetchOrders = async () => {
     setLoading(true);
     const list = await dataStore.getOrders();
     setOrders(list);
     setLoading(false);
+  };
+
+  const handleOpenPinModal = (order: Order) => {
+    setVerifyingOrder(order);
+    setEnteredPin('');
+    setPinError(null);
+    setPinSuccess(null);
+  };
+
+  const handleVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifyingOrder) return;
+    setPinError(null);
+    setPinSuccess(null);
+
+    const res = await dataStore.verifyPickupCode(verifyingOrder.id, enteredPin, 'Store Admin');
+    if (!res.success) {
+      setPinError(res.error || 'Invalid 4-digit code.');
+      return;
+    }
+
+    setPinSuccess('Code verified successfully! Order marked as Delivered & Approved.');
+    if (selectedOrder?.id === verifyingOrder.id && res.data) {
+      setSelectedOrder(res.data);
+    }
+    fetchOrders();
+    setTimeout(() => {
+      setVerifyingOrder(null);
+      setPinSuccess(null);
+    }, 1800);
   };
 
   useEffect(() => {
@@ -77,13 +113,19 @@ export const OrdersAdminPage: React.FC = () => {
   };
 
   const filtered = orders.filter((o) => {
-    if (filterStatus !== 'all' && o.orderStatus !== filterStatus) return false;
+    if (filterStatus === 'takeaway') {
+      if (o.fulfilmentMethod !== 'takeaway') return false;
+    } else if (filterStatus !== 'all' && o.orderStatus !== filterStatus) {
+      return false;
+    }
+
     if (search) {
       const q = search.toLowerCase();
       const matchNum = o.orderNumber.toLowerCase().includes(q);
       const matchName = o.customerName.toLowerCase().includes(q);
       const matchPhone = o.customerPhone.includes(q);
-      if (!matchNum && !matchName && !matchPhone) return false;
+      const matchPin = o.pickupCode ? o.pickupCode.includes(q) : false;
+      if (!matchNum && !matchName && !matchPhone && !matchPin) return false;
     }
     return true;
   });
@@ -157,6 +199,7 @@ export const OrdersAdminPage: React.FC = () => {
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500"
           >
             <option value="all">All Statuses ({orders.length})</option>
+            <option value="takeaway">🏬 Takeaway Pickups ({orders.filter((o) => o.fulfilmentMethod === 'takeaway').length})</option>
             {EXTENDED_STATUS_STEPS.map((s) => (
               <option key={s} value={s}>
                 {s} ({orders.filter((o) => o.orderStatus === s).length})
@@ -210,11 +253,28 @@ export const OrdersAdminPage: React.FC = () => {
                       <td className="py-3.5">
                         <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold ${
                           ord.fulfilmentMethod === 'takeaway'
-                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
                             : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
+                          <Store className="h-3 w-3" />
                           {ord.fulfilmentMethod === 'takeaway' ? 'Takeaway' : 'Delivery'}
                         </span>
+                        {ord.fulfilmentMethod === 'takeaway' && ord.pickupCode && (
+                          <div className="mt-1">
+                            <span className="font-mono font-black text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-300 text-[11px] inline-flex items-center gap-1">
+                              PIN: {ord.pickupCode}
+                            </span>
+                            {ord.pickupVerifiedAt ? (
+                              <span className="block text-[9px] font-extrabold text-emerald-700 mt-0.5">
+                                ✓ Verified at store
+                              </span>
+                            ) : (
+                              <span className="block text-[9px] font-medium text-amber-700 mt-0.5">
+                                Pending pickup
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5">
                         <span className="font-black text-slate-900 text-sm">₹{ord.finalTotal}</span>
@@ -245,7 +305,16 @@ export const OrdersAdminPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3.5 text-right space-x-1.5 whitespace-nowrap">
-                        {nextAction ? (
+                        {ord.fulfilmentMethod === 'takeaway' && ord.orderStatus !== 'Delivered' && ord.orderStatus !== 'Cancelled' ? (
+                          <button
+                            onClick={() => handleOpenPinModal(ord)}
+                            className="rounded-xl bg-amber-500 hover:bg-amber-600 px-3 py-1.5 text-[11px] font-black text-slate-950 shadow-xs active:scale-95 transition inline-flex items-center gap-1"
+                            title="Cross check customer 4-digit code and approve"
+                          >
+                            <span>🔑</span>
+                            <span>Verify PIN</span>
+                          </button>
+                        ) : nextAction ? (
                           <button
                             onClick={() => handleUpdateStatus(ord.id, nextAction.nextStatus)}
                             className="rounded-xl bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition"
@@ -400,6 +469,38 @@ export const OrdersAdminPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Takeaway 4-Digit PIN Card */}
+            {selectedOrder.fulfilmentMethod === 'takeaway' && selectedOrder.pickupCode && (
+              <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/80 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-amber-900 text-xs flex items-center gap-1.5">
+                    <Store className="h-4 w-4 text-amber-600" />
+                    <span>In-Store Takeaway Confirmation Code</span>
+                  </span>
+                  <span className="font-mono text-base font-black text-slate-950 bg-amber-400 px-3 py-1 rounded-xl shadow-xs">
+                    PIN: {selectedOrder.pickupCode}
+                  </span>
+                </div>
+                {selectedOrder.pickupVerifiedAt ? (
+                  <div className="rounded-xl bg-emerald-100 p-2.5 text-xs text-emerald-900 font-bold flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span>Verified by {selectedOrder.pickupVerifiedBy || 'Store Admin'} on {new Date(selectedOrder.pickupVerifiedAt).toLocaleString()}</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                    <span className="text-xs text-amber-900 font-medium">Customer must provide this 4-digit code at the store counter.</span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPinModal(selectedOrder)}
+                      className="rounded-xl bg-amber-500 hover:bg-amber-600 px-3 py-1.5 text-xs font-black text-slate-950 shadow-xs active:scale-95 transition"
+                    >
+                      🔑 Verify Customer PIN Now
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Customer & Delivery Address */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-1">
@@ -505,6 +606,119 @@ export const OrdersAdminPage: React.FC = () => {
       {/* GST Tax Invoice Modal */}
       {invoiceOrder && (
         <PrintableTaxInvoice order={invoiceOrder} onClose={() => setInvoiceOrder(null)} />
+      )}
+
+      {/* Takeaway 4-Digit Code Cross-Check & Verification Modal */}
+      {verifyingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400 text-slate-950 font-black shadow-xs">
+                  <Store className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    Verify Takeaway Pickup PIN
+                  </h3>
+                  <span className="text-[11px] text-slate-500 font-mono font-bold">
+                    #{verifyingOrder.orderNumber}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVerifyingOrder(null)}
+                className="rounded-full bg-slate-100 p-1.5 text-slate-400 hover:text-slate-700"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Customer Summary */}
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Customer:</span>
+                <span className="font-bold text-slate-900">{verifyingOrder.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Phone:</span>
+                <span className="font-bold text-slate-900">{verifyingOrder.customerPhone}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Order Amount:</span>
+                <span className="font-black text-emerald-700">₹{verifyingOrder.finalTotal}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
+                <span className="text-amber-800 font-bold">Registered 4-Digit PIN:</span>
+                <span className="font-mono font-black text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded text-sm">
+                  {verifyingOrder.pickupCode}
+                </span>
+              </div>
+            </div>
+
+            {pinError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-800">
+                {pinError}
+              </div>
+            )}
+
+            {pinSuccess && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                <span>{pinSuccess}</span>
+              </div>
+            )}
+
+            {/* Verification Form */}
+            <form onSubmit={handleVerifySubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Enter 4-Digit Code provided by Customer:
+                </label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  autoFocus
+                  required
+                  value={enteredPin}
+                  onChange={(e) => setEnteredPin(e.target.value.replace(/\D/g, ''))}
+                  placeholder="e.g. 7429"
+                  className="w-full text-center tracking-widest font-mono text-2xl font-black rounded-2xl border-2 border-slate-300 bg-slate-50 py-3 text-slate-900 outline-none focus:border-amber-500 focus:bg-white transition"
+                />
+              </div>
+
+              {/* Quick Fill Button */}
+              {verifyingOrder.pickupCode && (
+                <button
+                  type="button"
+                  onClick={() => setEnteredPin(verifyingOrder.pickupCode || '')}
+                  className="w-full text-center text-[11px] font-bold text-amber-800 hover:text-amber-950 underline"
+                >
+                  Quick Match: Use Registered Code ({verifyingOrder.pickupCode})
+                </button>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setVerifyingOrder(null)}
+                  className="w-1/3 rounded-xl border border-slate-300 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={enteredPin.length !== 4}
+                  className="w-2/3 rounded-xl bg-amber-400 hover:bg-amber-500 disabled:bg-slate-200 disabled:text-slate-400 py-2.5 text-xs font-black text-slate-950 shadow-sm active:scale-98 transition flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Verify Code & Approve Handover</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

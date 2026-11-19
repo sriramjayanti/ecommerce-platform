@@ -14,6 +14,7 @@ import {
   ExternalLink,
   ShieldAlert,
   FileSpreadsheet,
+  X,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -28,21 +29,46 @@ const NAV_ITEMS = [
   { path: '/banners', label: 'Promotional Banners', icon: Image },
 ];
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onItemClick?: () => void;
+  onClose?: () => void;
+  isMobile?: boolean;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, onClose, isMobile }) => {
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between p-4 flex-shrink-0 min-h-screen">
+    <aside
+      className={`bg-white border-r border-slate-200 flex flex-col justify-between p-4 flex-shrink-0 ${
+        isMobile
+          ? 'w-full h-full min-h-screen overflow-y-auto'
+          : 'hidden lg:flex w-64 min-h-screen sticky top-0'
+      }`}
+    >
       <div>
-        {/* Brand */}
-        <div className="flex items-center gap-3 px-2 py-4 mb-4 border-b border-slate-100">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white font-black shadow-md shadow-emerald-600/20">
-            <Store className="h-5 w-5" />
+        {/* Brand & Mobile Close Button */}
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white font-black shadow-md shadow-emerald-600/20">
+              <Store className="h-5 w-5" />
+            </div>
+            <div>
+              <span className="text-sm font-extrabold text-slate-900 tracking-tight">DailyFresh Mart</span>
+              <span className="block text-[10px] font-bold text-emerald-700 uppercase tracking-widest">
+                Admin Ops Center
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-sm font-extrabold text-slate-900 tracking-tight">DailyFresh Mart</span>
-            <span className="block text-[10px] font-bold text-emerald-700 uppercase tracking-widest">
-              Admin Ops Center
-            </span>
-          </div>
+
+          {isMobile && onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              aria-label="Close sidebar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation List */}
@@ -53,6 +79,7 @@ export const Sidebar: React.FC = () => {
               <NavLink
                 key={item.path}
                 to={item.path}
+                onClick={onItemClick}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition ${
                     isActive
@@ -70,7 +97,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer Storefront Link */}
-      <div className="pt-4 border-t border-slate-100 space-y-2">
+      <div className="pt-4 border-t border-slate-100 space-y-2 mt-auto">
         <a
           href={getStorefrontUrl()}
           target="_blank"

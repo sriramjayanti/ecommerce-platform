@@ -23,10 +23,10 @@ import {
   HelpCircle,
   Sparkles,
   ArrowLeft,
+  Store,
   Check,
   AlertCircle,
   Home,
-  Store,
 } from 'lucide-react';
 
 export const OrderTrackingPage: React.FC = () => {
@@ -200,6 +200,63 @@ export const OrderTrackingPage: React.FC = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Takeaway 4-Digit In-Store Pickup Confirmation PIN */}
+              {activeOrder.fulfilmentMethod === 'takeaway' && activeOrder.pickupCode && (
+                <div className="rounded-3xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 via-white to-amber-50/70 p-5 sm:p-6 shadow-md space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-400 text-slate-950 font-black shadow-xs">
+                        <Store className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm sm:text-base font-black text-slate-900">
+                          In-Store Takeaway Confirmation
+                        </h3>
+                        <p className="text-[11px] text-slate-500 font-medium">
+                          DailyFresh APMC Wholesale Hub (Gate #4)
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-900 px-3 py-1 text-[11px] font-black uppercase tracking-wider self-start sm:self-auto">
+                      🏬 Self-Pickup Order
+                    </span>
+                  </div>
+
+                  {/* 4-Digit Code Display */}
+                  <div className="bg-white rounded-2xl border border-amber-300 p-4 text-center shadow-xs space-y-2">
+                    <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 block">
+                      Your Store Pickup Confirmation Code
+                    </span>
+                    <div className="flex justify-center items-center gap-2.5 sm:gap-3 py-1">
+                      {activeOrder.pickupCode.split('').map((digit, i) => (
+                        <span
+                          key={i}
+                          className="flex h-14 w-12 sm:h-16 sm:w-14 items-center justify-center rounded-2xl bg-gradient-to-b from-amber-400 to-amber-500 text-slate-950 font-mono text-2xl sm:text-3xl font-black shadow-md border-2 border-amber-300"
+                        >
+                          {digit}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs font-bold text-slate-700 max-w-sm mx-auto">
+                      Please visit our store and tell this <span className="text-amber-800 font-black">4-digit code ({activeOrder.pickupCode})</span> to the store admin to collect your items.
+                    </p>
+                  </div>
+
+                  {/* Verification Status */}
+                  {activeOrder.pickupVerifiedAt ? (
+                    <div className="rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 p-3 text-center text-xs font-bold flex items-center justify-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      <span>Order Verified & Handed Over by Store Admin! (Completed)</span>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-amber-100/70 border border-amber-200 text-amber-900 p-2.5 text-center text-xs font-bold flex items-center justify-center gap-2">
+                      <Clock className="h-4 w-4 text-amber-600 animate-spin" />
+                      <span>Ready for pickup • Awaiting counter verification</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Cancelled Banner if applicable */}
               {isCancelled ? (

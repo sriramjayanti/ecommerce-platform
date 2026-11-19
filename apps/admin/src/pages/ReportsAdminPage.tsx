@@ -604,8 +604,8 @@ export const ReportsAdminPage: React.FC = () => {
         )}
       </div>
 
-      {/* KPI Highlights Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Highlights Cards (Side by side: 2 per line on mobile, 4 on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Gross Revenue */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">

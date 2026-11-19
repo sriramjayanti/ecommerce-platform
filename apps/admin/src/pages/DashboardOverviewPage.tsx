@@ -67,62 +67,70 @@ export const DashboardOverviewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards Grid (Side by side: 2 per line on mobile, 4 on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Revenue */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-            <span>Total Gross Revenue</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
-              <DollarSign className="h-4 w-4" />
+        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs space-y-1.5 sm:space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] sm:text-xs font-bold">
+            <span className="truncate">Gross Revenue</span>
+            <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex-shrink-0">
+              <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">₹{metrics.totalRevenue?.toLocaleString('en-IN') || 0}</div>
-          <p className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" />
-            <span>Verified PhonePe & COD Sales</span>
+          <div className="text-lg sm:text-2xl font-black text-slate-900 truncate">
+            ₹{metrics.totalRevenue?.toLocaleString('en-IN') || 0}
+          </div>
+          <p className="text-[10px] sm:text-[11px] text-emerald-600 font-semibold flex items-center gap-1 truncate">
+            <TrendingUp className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">PhonePe & COD</span>
           </p>
         </div>
 
         {/* Total Orders */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-            <span>Total Orders</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-              <ShoppingBag className="h-4 w-4" />
+        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs space-y-1.5 sm:space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] sm:text-xs font-bold">
+            <span className="truncate">Total Orders</span>
+            <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex-shrink-0">
+              <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{metrics.totalOrders || 0}</div>
-          <p className="text-[11px] text-slate-500">
-            Average Order Value: <span className="font-bold text-slate-800">₹{metrics.aov || 0}</span>
+          <div className="text-lg sm:text-2xl font-black text-slate-900">
+            {metrics.totalOrders || 0}
+          </div>
+          <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">
+            AOV: <span className="font-bold text-slate-800">₹{metrics.aov || 0}</span>
           </p>
         </div>
 
         {/* Wholesale Orders */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-            <span>Wholesale Orders</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
-              <Zap className="h-4 w-4 fill-amber-500" />
+        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs space-y-1.5 sm:space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] sm:text-xs font-bold">
+            <span className="truncate">Wholesale Orders</span>
+            <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex-shrink-0">
+              <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-amber-500" />
             </div>
           </div>
-          <div className="text-2xl font-black text-amber-600">{metrics.wholesaleOrders || 0}</div>
-          <p className="text-[11px] text-amber-700 font-medium">Bulk quantity slabs triggered</p>
+          <div className="text-lg sm:text-2xl font-black text-amber-600">
+            {metrics.wholesaleOrders || 0}
+          </div>
+          <p className="text-[10px] sm:text-[11px] text-amber-700 font-medium truncate">
+            Bulk slabs triggered
+          </p>
         </div>
 
         {/* Low Stock Alerts */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-            <span>Low Stock Alerts</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
-              <AlertTriangle className="h-4 w-4" />
+        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs space-y-1.5 sm:space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] sm:text-xs font-bold">
+            <span className="truncate">Low Stock</span>
+            <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex-shrink-0">
+              <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
           </div>
-          <div className={`text-2xl font-black ${metrics.lowStockCount > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+          <div className={`text-lg sm:text-2xl font-black ${metrics.lowStockCount > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
             {metrics.lowStockCount || 0}
           </div>
-          <p className="text-[11px] text-slate-500">
-            {metrics.lowStockCount > 0 ? `${metrics.lowStockCount} items need replenishment` : 'All inventory healthy'}
+          <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">
+            {metrics.lowStockCount > 0 ? `${metrics.lowStockCount} need restock` : 'Stock healthy'}
           </p>
         </div>
       </div>

@@ -73,30 +73,30 @@ export const CustomerLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-3 sm:p-6 lg:p-8">
-      <div className="w-full max-w-5xl rounded-3xl overflow-hidden bg-white shadow-2xl border border-slate-200 grid grid-cols-1 lg:grid-cols-12 min-h-[620px]">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-2 sm:p-4 lg:p-8 pb-20 md:pb-8">
+      <div className="w-full max-w-md lg:max-w-5xl rounded-3xl overflow-hidden bg-white shadow-2xl border border-slate-200 grid grid-cols-1 lg:grid-cols-12 min-h-0 lg:min-h-[560px]">
         
-        {/* Left Side: Rich Grocery Supermarket Showcase Image */}
-        <div className="lg:col-span-6 relative bg-slate-950 p-8 sm:p-12 flex flex-col justify-between overflow-hidden text-white min-h-[320px] lg:min-h-full">
+        {/* Left Side: Rich Grocery Supermarket Showcase Image (Compact on mobile) */}
+        <div className="lg:col-span-6 relative bg-slate-950 p-4 sm:p-6 lg:p-10 flex flex-col justify-between overflow-hidden text-white min-h-[130px] sm:min-h-[170px] lg:min-h-full">
           {/* Fresh Grocery Background Imagery */}
           <img
             src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=80"
             alt="Fresh grocery store shelves with vegetables and grains"
-            className="absolute inset-0 h-full w-full object-cover opacity-35 scale-105 transition-transform duration-1000"
+            className="absolute inset-0 h-full w-full object-cover opacity-35 scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-950/40 z-10" />
 
           {/* Top Brand Tag */}
           <div className="relative z-20 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black shadow-lg shadow-amber-500/25 group-hover:scale-105 transition">
-                <Store className="h-5 w-5" />
+              <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black shadow-lg shadow-amber-500/25 group-hover:scale-105 transition">
+                <Store className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               <div>
-                <span className="text-lg font-black tracking-tight text-white block leading-tight">
+                <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">
                   DailyMart <span className="text-amber-400">Prime</span>
                 </span>
-                <span className="text-[10px] font-bold text-emerald-400 tracking-wider">
+                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 tracking-wider">
                   Wholesale & Supermart
                 </span>
               </div>
@@ -104,30 +104,30 @@ export const CustomerLoginPage: React.FC = () => {
 
             <Link
               to="/"
-              className="inline-flex items-center gap-1 rounded-xl bg-white/10 hover:bg-white/20 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-xs transition"
+              className="inline-flex items-center gap-1 rounded-xl bg-white/10 hover:bg-white/20 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-white backdrop-blur-xs transition"
             >
-              <ArrowLeft className="h-3.5 w-3.5" />
+              <ArrowLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               <span>Back to Store</span>
             </Link>
           </div>
 
-          {/* Center Message: Fresh Grocery Promise */}
-          <div className="relative z-20 space-y-4 my-8">
-            <div className="inline-flex items-center gap-2 rounded-full bg-amber-400/20 border border-amber-400/30 px-3 py-1 text-xs font-black text-amber-300">
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+          {/* Center Message: Fresh Grocery Promise (Expanded on Desktop, Compact on Mobile) */}
+          <div className="relative z-20 my-2 lg:my-6 space-y-2 lg:space-y-4">
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 border border-amber-400/30 px-2.5 py-0.5 text-[11px] font-black text-amber-300">
+              <Sparkles className="h-3 w-3 text-amber-400" />
               <span>Direct From Farm & Wholesale Mandi</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight tracking-tight text-white">
+            <h1 className="text-lg sm:text-2xl lg:text-3xl font-black leading-tight tracking-tight text-white">
               Fresh Groceries & Wholesale Slabs at Mandi Rates.
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
-              Order farm-fresh vegetables, premium chakki atta, basmati rice, pulses, and FMCG cartons with doorstep delivery in 2 hours.
+            <p className="hidden lg:block text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
+              Order farm-fresh vegetables, premium chakki atta, basmati rice, pulses, and FMCG cartons with direct bulk savings.
             </p>
 
-            {/* Grocery Value Highlights */}
-            <div className="grid grid-cols-2 gap-3 pt-3">
+            {/* Grocery Value Highlights (Visible on desktop/tablet) */}
+            <div className="hidden lg:grid grid-cols-2 gap-3 pt-2">
               <div className="rounded-2xl bg-white/10 backdrop-blur-xs p-3 border border-white/10">
                 <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
                   <Zap className="h-4 w-4" />
@@ -140,25 +140,25 @@ export const CustomerLoginPage: React.FC = () => {
 
               <div className="rounded-2xl bg-white/10 backdrop-blur-xs p-3 border border-white/10">
                 <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
-                  <Truck className="h-4 w-4" />
-                  <span>2-Hour Delivery</span>
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Quality Guaranteed</span>
                 </div>
                 <p className="text-[11px] text-slate-300 mt-0.5">
-                  Free neighborhood delivery on orders above ₹499.
+                  100% genuine farm produce & pantry staples.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Bottom Trust Badge */}
-          <div className="relative z-20 flex items-center gap-2 text-xs text-slate-400 border-t border-white/10 pt-4">
+          {/* Bottom Trust Badge (Hidden on mobile to save space) */}
+          <div className="hidden lg:flex relative z-20 items-center gap-2 text-xs text-slate-400 border-t border-white/10 pt-3">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
             <span>Trusted by over 50,000+ local families and food retailers</span>
           </div>
         </div>
 
         {/* Right Side: Customer Sign In / Register Form */}
-        <div className="lg:col-span-6 p-6 sm:p-10 md:p-12 flex flex-col justify-between space-y-6">
+        <div className="lg:col-span-6 p-4 sm:p-8 lg:p-10 flex flex-col justify-between space-y-4 sm:space-y-6">
           <div className="space-y-6">
             <div>
               <span className="text-[11px] font-black uppercase tracking-widest text-emerald-700 block">

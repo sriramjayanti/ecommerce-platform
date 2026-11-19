@@ -549,6 +549,11 @@ export const AccountPage: React.FC<AccountPageProps> = ({ defaultTab }) => {
                           <span className="text-[10px] text-slate-400 font-bold">
                             • {order.fulfilmentMethod === 'takeaway' ? 'Store Pickup' : 'Home Delivery'}
                           </span>
+                          {order.fulfilmentMethod === 'takeaway' && order.pickupCode && (
+                            <span className="inline-flex items-center gap-1 font-mono font-black text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded text-[10px]">
+                              PIN: {order.pickupCode}
+                            </span>
+                          )}
                         </div>
                         <p className="text-slate-500 text-[11px] mt-0.5">
                           Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', {

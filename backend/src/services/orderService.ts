@@ -121,6 +121,11 @@ export class OrderService {
 
     const orderNumber = `ORD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
 
+    const isTakeaway = input.fulfilmentMethod === 'takeaway';
+    const pickupCode = isTakeaway
+      ? Math.floor(1000 + Math.random() * 9000).toString()
+      : undefined;
+
     const order: Order = {
       id: `ord-${Date.now()}`,
       orderNumber,
@@ -133,13 +138,14 @@ export class OrderService {
       subtotal: calc.subtotal,
       totalMrp: calc.totalMrp,
       totalSavings: calc.totalSavings,
-      deliveryCharge: input.fulfilmentMethod === 'takeaway' ? 0 : calc.deliveryCharge,
+      deliveryCharge: isTakeaway ? 0 : calc.deliveryCharge,
       taxAmount: calc.taxAmount,
       discountAmount: 0,
-      finalTotal: calc.subtotal + (input.fulfilmentMethod === 'takeaway' ? 0 : calc.deliveryCharge),
+      finalTotal: calc.subtotal + (isTakeaway ? 0 : calc.deliveryCharge),
       paymentMethod: input.paymentMethod,
       paymentStatus: input.paymentMethod === 'cod' ? 'pending' : (input.paymentMethod === 'online' ? 'initiated' : 'successful'),
       fulfilmentMethod: input.fulfilmentMethod || 'delivery',
+      pickupCode,
       orderStatus: input.paymentMethod === 'cod' ? 'Placed' : (input.paymentMethod === 'online' ? 'Placed' : 'Confirmed'),
       statusHistory: [
         {

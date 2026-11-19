@@ -203,8 +203,8 @@ export const InventoryAdminPage: React.FC = () => {
         </div>
       )}
 
-      {/* Stock Health Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      {/* Stock Health Metric Cards (Side by side: 2 per line on mobile, 4 on desktop) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
           <span className="text-xs text-slate-500 font-bold block">Total Tracked SKUs</span>
           <span className="text-2xl font-black text-slate-900 mt-1 block">{allVariants.length}</span>
@@ -303,7 +303,7 @@ export const InventoryAdminPage: React.FC = () => {
                 <tr className="border-b border-slate-200 text-slate-500 font-bold">
                   <th className="pb-3">Product & Variant</th>
                   <th className="pb-3">SKU</th>
-                  <th className="pb-3">Base Price</th>
+                  <th className="pb-3">Selling & Net Cost</th>
                   <th className="pb-3">Current Stock</th>
                   <th className="pb-3">Threshold</th>
                   <th className="pb-3">Status</th>
@@ -340,7 +340,16 @@ export const InventoryAdminPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3 font-mono font-bold text-slate-500">{v.sku || 'N/A'}</td>
-                        <td className="py-3 font-bold text-slate-900">₹{v.basePrice}</td>
+                        <td className="py-3">
+                          <span className="font-bold text-slate-900 block">₹{v.basePrice}</span>
+                          {v.costPrice ? (
+                            <span className="text-[10px] text-slate-500 font-medium block">
+                              Cost: ₹{v.costPrice} ({v.basePrice > v.costPrice ? `+₹${v.basePrice - v.costPrice} Profit` : v.basePrice < v.costPrice ? `-₹${v.costPrice - v.basePrice} Loss` : 'Break-even'})
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic block">Cost not set</span>
+                          )}
+                        </td>
                         <td className="py-3">
                           <span className="text-sm font-black text-slate-900">{v.stock} units</span>
                         </td>

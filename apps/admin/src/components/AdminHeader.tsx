@@ -5,9 +5,14 @@ import {
   LogOut,
   ExternalLink,
   Store,
+  Menu,
 } from 'lucide-react';
 
-export const AdminHeader: React.FC = () => {
+interface AdminHeaderProps {
+  onOpenMobileMenu?: () => void;
+}
+
+export const AdminHeader: React.FC<AdminHeaderProps> = ({ onOpenMobileMenu }) => {
   const { adminUser, logout } = useAdminAuth();
 
   const getRoleBadge = (role?: string) => {
@@ -24,18 +29,35 @@ export const AdminHeader: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/95 px-6 py-3.5 backdrop-blur-md shadow-2xs">
-      {/* Left: Quick System Status */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/80 animate-pulse" />
-        <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-          Operations & Wholesale Platform
-        </span>
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 sm:px-6 py-3 backdrop-blur-md shadow-2xs">
+      {/* Left: Mobile Hamburger Toggle + System Brand / Status */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Mobile Hamburger Button */}
+        <button
+          type="button"
+          onClick={onOpenMobileMenu}
+          className="lg:hidden flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-black shadow-xs active:scale-95 transition"
+          aria-label="Open navigation menu"
+        >
+          <Menu className="h-4 w-4" />
+          <span>Menu</span>
+        </button>
+
+        {/* Live indicator & Title */}
+        <div className="flex items-center gap-2 truncate">
+          <div className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/80 animate-pulse flex-shrink-0" />
+          <span className="text-xs font-black uppercase tracking-wider text-slate-700 truncate hidden xs:inline">
+            Admin Ops Center
+          </span>
+          <span className="text-xs font-black uppercase tracking-wider text-slate-700 xs:hidden">
+            Admin
+          </span>
+        </div>
       </div>
 
       {/* Right: Actions, Role Badge, User Profile & Logout */}
-      <div className="flex items-center gap-3">
-        {/* Storefront Link */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        {/* Storefront Link (Hidden on very small screens, visible on sm+) */}
         <a
           href={getStorefrontUrl()}
           target="_blank"
@@ -67,7 +89,7 @@ export const AdminHeader: React.FC = () => {
             <button
               type="button"
               onClick={logout}
-              className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition shadow-2xs"
+              className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition shadow-2xs"
               title="Sign out of admin"
             >
               <LogOut className="h-4 w-4" />

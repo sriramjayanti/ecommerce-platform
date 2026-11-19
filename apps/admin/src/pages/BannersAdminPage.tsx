@@ -483,22 +483,24 @@ export const BannersAdminPage: React.FC = () => {
                   {b.linkUrl}
                 </span>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-4 sm:gap-5">
                   <button
                     type="button"
                     onClick={() => openEditModal(b)}
-                    className="rounded-xl bg-slate-100 p-2 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 transition border border-slate-200"
+                    className="inline-flex items-center gap-1 rounded-xl bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition border border-emerald-200"
                     title="Edit Banner"
                   >
                     <Edit2 className="h-3.5 w-3.5" />
+                    <span>Edit</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDeleteBanner(b.id)}
-                    className="rounded-xl bg-slate-100 p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-slate-200"
+                    className="inline-flex items-center gap-1 rounded-xl bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition border border-slate-200 hover:border-rose-200"
                     title="Delete Banner"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>

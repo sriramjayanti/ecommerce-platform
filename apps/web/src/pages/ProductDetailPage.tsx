@@ -21,6 +21,7 @@ import {
   Package,
   Plus,
   ArrowLeft,
+  Tag,
 } from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
@@ -271,6 +272,24 @@ export const ProductDetailPage: React.FC = () => {
                   M.R.P.: <span className="line-through">₹{mrp.toLocaleString('en-IN')}</span> (Inclusive of all taxes)
                 </p>
               )}
+
+              {/* Quick Wholesale Offers Button */}
+              {product.isWholesaleEnabled && selectedVariant.pricingTiers && selectedVariant.pricingTiers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('wholesale-offers-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full mt-2 flex items-center justify-between rounded-xl bg-amber-100 hover:bg-amber-200 border border-amber-300 p-2.5 text-xs font-black text-amber-950 transition active:scale-98"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="h-4 w-4 text-amber-600 fill-amber-500" />
+                    <span>Special Wholesale Offers ({selectedVariant.pricingTiers.length} Slabs)</span>
+                  </span>
+                  <span className="text-amber-800 underline text-[11px] font-bold">Show Offers ↓</span>
+                </button>
+              )}
             </div>
 
             {/* Bank Offers Card */}
@@ -313,12 +332,12 @@ export const ProductDetailPage: React.FC = () => {
 
             {/* Wholesale Tier Pricing Table */}
             {product.isWholesaleEnabled && selectedVariant.pricingTiers && selectedVariant.pricingTiers.length > 0 && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-black text-amber-900">
-                  <Zap className="h-4 w-4 fill-amber-500 text-amber-600" />
-                  <span>Wholesale Quantity Discount Slabs:</span>
-                </div>
-                <WholesaleTierTable variant={selectedVariant} currentQuantity={quantity} />
+              <div id="wholesale-offers-section" className="scroll-mt-24">
+                <WholesaleTierTable
+                  variant={selectedVariant}
+                  currentQuantity={quantity}
+                  onSelectQuantity={(q) => setQuantity(q)}
+                />
               </div>
             )}
 

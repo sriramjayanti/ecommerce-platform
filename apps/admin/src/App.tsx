@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
 import { Sidebar } from './components/Sidebar';
@@ -29,6 +29,7 @@ const StoreRedirect: React.FC = () => {
 
 function AdminLayout() {
   const { adminUser } = useAdminAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (!adminUser) {
     return <AdminLoginPage />;
@@ -36,10 +37,35 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50">
-        <AdminHeader />
-        <main className="flex-1 p-4 sm:p-6 w-full">
+      {/* Desktop Persistent Sidebar (Hidden on mobile) */}
+      <div className="hidden lg:block">
+        <Sidebar />
+      </div>
+
+      {/* Mobile Slide-over Drawer Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Drawer Content */}
+          <div className="relative z-50 w-72 max-w-[85vw] bg-white h-full shadow-2xl flex flex-col">
+            <Sidebar
+              isMobile
+              onClose={() => setMobileMenuOpen(false)}
+              onItemClick={() => setMobileMenuOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area (100% full width on mobile, dashboard visible first at top) */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 w-full">
+        <AdminHeader onOpenMobileMenu={() => setMobileMenuOpen(true)} />
+        <main className="flex-1 p-3 sm:p-6 w-full max-w-7xl mx-auto">
           <Routes>
             <Route path="/" element={<DashboardOverviewPage />} />
             <Route path="/reports" element={<ReportsAdminPage />} />
@@ -65,11 +91,7 @@ export function App() {
   return (
     <BrowserRouter>
       <AdminAuthProvider>
-        <Routes>
-          <Route path="/store" element={<StoreRedirect />} />
-          <Route path="/shop" element={<StoreRedirect />} />
-          <Route path="/*" element={<AdminLayout />} />
-        </Routes>
+        <AdminLayout />
       </AdminAuthProvider>
     </BrowserRouter>
   );

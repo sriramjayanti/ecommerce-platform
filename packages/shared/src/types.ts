@@ -43,7 +43,8 @@ export interface ProductVariant {
   barcode?: string;
   weightOrSize: string;
   mrp: number;
-  basePrice: number; // Single unit regular price
+  basePrice: number; // Single unit regular price (Selling Price)
+  costPrice?: number; // Admin Only: Net Amount / Purchase Cost Price (used for Profit & Loss calculation)
   stock: number;
   lowStockThreshold: number;
   pricingTiers: PriceTier[];
@@ -62,6 +63,7 @@ export interface Product {
   brand?: string;
   images: string[];
   variants: ProductVariant[];
+  costPrice?: number; // Admin Only: Net amount / purchase cost price
   isWholesaleEnabled: boolean;
   isFeatured?: boolean;
   isNewArrival?: boolean;
@@ -197,6 +199,9 @@ export interface Order {
   paymentStatus: PaymentStatus;
   paymentId?: string;
   fulfilmentMethod?: 'delivery' | 'takeaway';
+  pickupCode?: string; // 4-digit confirmation PIN generated exclusively for 'takeaway' (Store Pickup)
+  pickupVerifiedAt?: string; // Timestamp when admin verifies the 4-digit PIN in-store
+  pickupVerifiedBy?: string; // Name/Email of store admin who approved pickup
   orderStatus: OrderStatus;
   statusHistory: OrderStatusHistoryItem[];
   staffNotes?: string[];
