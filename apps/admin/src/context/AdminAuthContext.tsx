@@ -42,10 +42,12 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [token]);
 
   const login = async (email: string, role: UserRole = 'super_admin', displayName?: string): Promise<boolean> => {
+    const isEmail = email.includes('@');
     const profile: UserProfile = {
       id: `admin-${Date.now()}`,
-      email,
-      displayName: displayName || (email.split('@')[0].toUpperCase() + ' (Admin)'),
+      email: isEmail ? email : `${email}@dailyfreshmart.com`,
+      phone: !isEmail ? email : undefined,
+      displayName: displayName || (isEmail ? email.split('@')[0].toUpperCase() + ' (Admin)' : `Super Admin (${email})`),
       role,
       isBlocked: false,
       createdAt: new Date().toISOString(),

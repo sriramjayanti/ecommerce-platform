@@ -5,6 +5,7 @@ import {
   Store,
   Lock,
   Mail,
+  Phone,
   ExternalLink,
   ShieldCheck,
   Zap,
@@ -14,39 +15,55 @@ import {
 
 export const AdminLoginPage: React.FC = () => {
   const { login } = useAdminAuth();
-  const [email, setEmail] = useState('admin@dailyfreshmart.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('7799225566');
+  const [password, setPassword] = useState('id@varshitha123');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      setError('Please enter your admin email address.');
+    const cleanId = email.trim();
+    if (!cleanId) {
+      setError('Please enter your admin mobile number or email.');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your admin password.');
+      return;
+    }
+
+    // Official Login Credentials Check
+    const isPrimaryAdmin = cleanId === '7799225566' && password === 'id@varshitha123';
+    const isLegacyAdmin = cleanId.toLowerCase() === 'admin@dailyfreshmart.com' && (password === 'id@varshitha123' || password === 'admin123');
+    const isOpsManager = cleanId.toLowerCase().includes('ops') && (password === 'id@varshitha123' || password === 'admin123');
+    const isInvManager = cleanId.toLowerCase().includes('inv') && (password === 'id@varshitha123' || password === 'admin123');
+
+    if (!isPrimaryAdmin && !isLegacyAdmin && !isOpsManager && !isInvManager && password !== 'id@varshitha123' && password !== 'admin123') {
+      setError('Invalid login credentials. Please verify your mobile number/email and password.');
       return;
     }
 
     let role: any = 'super_admin';
     let name = 'Super Admin';
 
-    const lower = email.toLowerCase();
-    if (lower.includes('ops')) {
+    if (isPrimaryAdmin) {
+      role = 'super_admin';
+      name = 'Super Admin (7799225566)';
+    } else if (isOpsManager) {
       role = 'order_manager';
       name = 'Operations Manager';
-    } else if (lower.includes('inv')) {
+    } else if (isInvManager) {
       role = 'inventory_manager';
       name = 'Inventory Supervisor';
-    } else if (lower.includes('admin')) {
-      role = 'super_admin';
-      name = 'Super Admin';
     }
 
-    await login(email, role, name);
+    await login(cleanId, role, name);
   };
 
-  const handlePresetFill = (presetEmail: string) => {
-    setEmail(presetEmail);
-    setPassword('admin123');
+  const handlePresetFill = (presetId: string, presetPass: string = 'id@varshitha123') => {
+    setEmail(presetId);
+    setPassword(presetPass);
+    setError(null);
   };
 
   return (
@@ -89,17 +106,20 @@ export const AdminLoginPage: React.FC = () => {
 
           <form onSubmit={handleFormSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Admin Email</label>
+              <label className="block text-slate-700 font-bold mb-1">Admin Mobile Number or Email</label>
               <div className="relative">
                 <input
-                  type="email"
+                  type="text"
                   required
-                  placeholder="admin@dailyfreshmart.com"
+                  placeholder="e.g. 7799225566 or admin@dailyfreshmart.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError(null);
+                  }}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 sm:py-3 pl-9 pr-3 text-slate-900 outline-none focus:border-emerald-500 focus:bg-white font-medium text-xs sm:text-sm transition shadow-2xs"
                 />
-                <Mail className="absolute left-3 top-3 sm:top-3.5 h-4 w-4 text-slate-400" />
+                <Phone className="absolute left-3 top-3 sm:top-3.5 h-4 w-4 text-slate-400" />
               </div>
             </div>
 
@@ -110,7 +130,10 @@ export const AdminLoginPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError(null);
+                  }}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 sm:py-3 pl-9 pr-10 text-slate-900 outline-none focus:border-emerald-500 focus:bg-white text-xs sm:text-sm transition shadow-2xs font-medium"
                 />
                 <Lock className="absolute left-3 top-3 sm:top-3.5 h-4 w-4 text-slate-400" />
@@ -145,22 +168,23 @@ export const AdminLoginPage: React.FC = () => {
             <div className="grid grid-cols-3 gap-1.5 text-[10px] font-bold">
               <button
                 type="button"
-                onClick={() => handlePresetFill('admin@dailyfreshmart.com')}
-                className="rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-800 p-1.5 text-center transition"
+                onClick={() => handlePresetFill('7799225566', 'id@varshitha123')}
+                className="rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 p-1.5 text-center transition font-black truncate"
+                title="Super Admin: 7799225566"
               >
-                Super Admin
+                7799225566
               </button>
               <button
                 type="button"
-                onClick={() => handlePresetFill('ops@dailyfreshmart.com')}
-                className="rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-800 p-1.5 text-center transition"
+                onClick={() => handlePresetFill('ops@dailyfreshmart.com', 'id@varshitha123')}
+                className="rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-800 p-1.5 text-center transition truncate"
               >
                 Ops Manager
               </button>
               <button
                 type="button"
-                onClick={() => handlePresetFill('inv@dailyfreshmart.com')}
-                className="rounded-lg border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-800 p-1.5 text-center transition"
+                onClick={() => handlePresetFill('inv@dailyfreshmart.com', 'id@varshitha123')}
+                className="rounded-lg border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-800 p-1.5 text-center transition truncate"
               >
                 Inventory
               </button>
