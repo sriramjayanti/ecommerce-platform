@@ -227,12 +227,17 @@ class UnifiedDataStore {
     if (typeof window === 'undefined') return;
 
     // Total clean wipe of client-side cache so user tests all pages from zero/clean slate
-    if (!safeGetItem('dailyfresh_clean_slate_v10')) {
+    if (!safeGetItem('dailyfresh_clean_slate_v12')) {
       safeSetItem('dailyfresh_products', JSON.stringify([]));
       safeSetItem('dailyfresh_categories', JSON.stringify([]));
       safeSetItem('dailyfresh_orders', JSON.stringify([]));
       safeSetItem('dailyfresh_inventory_logs', JSON.stringify([]));
-      safeSetItem('dailyfresh_clean_slate_v10', 'true');
+      safeRemoveItem('dailyfresh_user');
+      safeRemoveItem('dailyfresh_addresses');
+      safeRemoveItem('dailyfresh_cart');
+      safeRemoveItem('dailyfresh_admin_user');
+      safeRemoveItem('dailyfresh_admin_token');
+      safeSetItem('dailyfresh_clean_slate_v12', 'true');
     }
 
     if (!safeGetItem('dailyfresh_products')) {
@@ -729,9 +734,9 @@ class UnifiedDataStore {
         if (!snap.empty) {
           const firestoreOrders: Order[] = [];
           snap.forEach((docSnap) => {
-            const data = docSnap.data() as Order;
-            if (data && (data.id || (data as any).orderNumber)) {
-              firestoreOrders.push(data);
+            const data = docSnap.data() as any;
+            if (data && !data.isCleared && (data.id || data.orderNumber) && data.orderNumber !== '') {
+              firestoreOrders.push(data as Order);
             }
           });
 
@@ -744,17 +749,19 @@ class UnifiedDataStore {
 
           const orderMap = new Map<string, Order>();
           firestoreOrders.forEach((o) => orderMap.set(o.id, o));
-          localOrders.forEach((o) => {
-            if (!orderMap.has(o.id)) {
+          localOrders.forEach((o: any) => {
+            if (o && !o.isCleared && o.orderNumber && !orderMap.has(o.id)) {
               orderMap.set(o.id, o);
               // Backfill local order to Firestore
               setDoc(doc(firestore, 'orders', o.id), o).catch(() => {});
             }
           });
 
-          const merged = Array.from(orderMap.values()).sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+          const merged = Array.from(orderMap.values())
+            .filter((o: any) => o && !o.isCleared && o.orderNumber)
+            .sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
           safeSetItem('dailyfresh_orders', JSON.stringify(merged));
           return merged;
         }
@@ -765,13 +772,19 @@ class UnifiedDataStore {
 
     const apiRes = await this.safeApiFetch<{ success: boolean; data: Order[] }>('/api/orders');
     if (apiRes && apiRes.success && Array.isArray(apiRes.data) && apiRes.data.length > 0) {
-      safeSetItem('dailyfresh_orders', JSON.stringify(apiRes.data));
-      return apiRes.data;
+      const activeApiOrders = apiRes.data.filter((o: any) => o && !o.isCleared && o.orderNumber);
+      safeSetItem('dailyfresh_orders', JSON.stringify(activeApiOrders));
+      return activeApiOrders;
     }
 
     try {
       const raw = safeGetItem('dailyfresh_orders');
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((o: any) => o && !o.isCleared && o.orderNumber);
+        }
+      }
     } catch {}
 
     return [];
@@ -1369,7 +1382,7 @@ class UnifiedDataStore {
     };
   }
 
-  // ------------------- DEMO DATA RESET -------------------
+  // ------------------- DEMO DATA RESET & CLEAR ALL DATA -------------------
   public resetDemoData() {
     if (typeof window === 'undefined') return;
     safeSetItem('dailyfresh_products', JSON.stringify([]));
@@ -1378,6 +1391,24 @@ class UnifiedDataStore {
     safeSetItem('dailyfresh_settings', JSON.stringify(DEFAULT_STORE_SETTINGS));
     safeSetItem('dailyfresh_orders', JSON.stringify([]));
     safeSetItem('dailyfresh_inventory_logs', JSON.stringify([]));
+    this.broadcast('products_updated');
+    this.broadcast('categories_updated');
+    this.broadcast('orders_updated');
+    this.broadcast('inventory_updated');
+  }
+
+  public clearAllPlatformData() {
+    if (typeof window === 'undefined') return;
+    safeSetItem('dailyfresh_products', JSON.stringify([]));
+    safeSetItem('dailyfresh_categories', JSON.stringify([]));
+    safeSetItem('dailyfresh_orders', JSON.stringify([]));
+    safeSetItem('dailyfresh_inventory_logs', JSON.stringify([]));
+    safeRemoveItem('dailyfresh_user');
+    safeRemoveItem('dailyfresh_addresses');
+    safeRemoveItem('dailyfresh_cart');
+    safeRemoveItem('dailyfresh_admin_user');
+    safeRemoveItem('dailyfresh_admin_token');
+
     this.broadcast('products_updated');
     this.broadcast('categories_updated');
     this.broadcast('orders_updated');

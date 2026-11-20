@@ -8,12 +8,15 @@ import {
   ExternalLink,
   ShieldCheck,
   Zap,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export const AdminLoginPage: React.FC = () => {
   const { login } = useAdminAuth();
   const [email, setEmail] = useState('admin@dailyfreshmart.com');
   const [password, setPassword] = useState('admin123');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -104,13 +107,25 @@ export const AdminLoginPage: React.FC = () => {
               <label className="block text-slate-700 font-bold mb-1">Password or Master PIN</label>
               <div className="relative">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 sm:py-3 pl-9 pr-3 text-slate-900 outline-none focus:border-emerald-500 focus:bg-white text-xs sm:text-sm transition shadow-2xs"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 sm:py-3 pl-9 pr-10 text-slate-900 outline-none focus:border-emerald-500 focus:bg-white text-xs sm:text-sm transition shadow-2xs font-medium"
                 />
                 <Lock className="absolute left-3 top-3 sm:top-3.5 h-4 w-4 text-slate-400" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 sm:top-3 text-slate-400 hover:text-slate-600 focus:outline-none p-1 transition"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-slate-500" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-slate-400" />
+                  )}
+                </button>
               </div>
             </div>
 

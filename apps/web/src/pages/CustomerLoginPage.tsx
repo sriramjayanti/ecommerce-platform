@@ -14,6 +14,9 @@ import {
   Phone,
   User,
   ShoppingBag,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export const CustomerLoginPage: React.FC = () => {
@@ -24,6 +27,8 @@ export const CustomerLoginPage: React.FC = () => {
 
   const [loginPhone, setLoginPhone] = useState('');
   const [loginName, setLoginName] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -213,6 +218,34 @@ export const CustomerLoginPage: React.FC = () => {
                 <p className="text-[10px] text-slate-400 mt-1">
                   We'll send order updates and invoice copies to this contact.
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Password or Security PIN (Optional)
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="Enter account password or PIN"
+                    className="w-full rounded-2xl border border-slate-300 bg-white pl-10 pr-11 py-3 text-xs text-slate-900 outline-none focus:border-amber-500 font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1 transition"
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-slate-600" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-slate-400" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <button

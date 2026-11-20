@@ -9,6 +9,7 @@ import {
   DollarSign,
   ArrowRight,
   Package,
+  RotateCcw,
 } from 'lucide-react';
 
 export const DashboardOverviewPage: React.FC = () => {
@@ -42,6 +43,13 @@ export const DashboardOverviewPage: React.FC = () => {
     }
   };
 
+  const handleClearAllData = async () => {
+    if (window.confirm('Are you sure you want to clear all orders, reset all KPIs to zero, and clear login data?')) {
+      dataStore.clearAllPlatformData();
+      await loadDashboardData();
+    }
+  };
+
   useEffect(() => {
     loadDashboardData();
     const unsubscribe = dataStore.subscribe(() => {
@@ -65,6 +73,17 @@ export const DashboardOverviewPage: React.FC = () => {
           <p className="text-xs text-slate-500 mt-1">
             Real-time metrics, wholesale conversions, inventory alerts, and synchronized customer orders.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleClearAllData}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 px-3.5 py-2 text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
+            title="Reset all orders, inventory logs, sessions, and KPIs to zero"
+          >
+            <RotateCcw className="h-3.5 w-3.5 text-rose-600" />
+            <span>Reset All Data & KPIs</span>
+          </button>
         </div>
       </div>
 
