@@ -214,7 +214,7 @@ export const OrderTrackingPage: React.FC = () => {
                           In-Store Takeaway Confirmation
                         </h3>
                         <p className="text-[11px] text-slate-500 font-medium">
-                          DailyFresh APMC Wholesale Hub (Gate #4)
+                          Varshitha Sudarshan Agencies (VS Wholesale) — Opp Shadikhana, Main Road, Amalapuram (Ph: 7799448865)
                         </p>
                       </div>
                     </div>
@@ -387,7 +387,7 @@ export const OrderTrackingPage: React.FC = () => {
                     Questions about your delivery?
                   </span>
                   <a
-                    href="https://wa.me/919876543210"
+                    href="https://wa.me/917799448865"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-bold shadow-xs transition"

@@ -230,7 +230,7 @@ export const ProductDetailPage: React.FC = () => {
               {/* Brand & Verified Assured Pill */}
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <span className="text-xs font-black uppercase text-amber-600 tracking-wider">
-                  Brand: {product.brand || 'DailyMart'}
+                  Brand: {product.brand || 'VS Wholesale'}
                 </span>
                 <span className="flex items-center gap-1 font-black text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                   <ShieldCheck className="h-3.5 w-3.5" />
@@ -487,7 +487,7 @@ export const ProductDetailPage: React.FC = () => {
                   <span>7-Day Replacement / Return Guarantee</span>
                 </div>
                 <p className="text-[10px] text-slate-400 pt-1">
-                  Ships from DailyMart Prime Warehouse • Sold by Verified Seller
+                  Ships from Central Warehouse (Varshitha Sudarshan Agencies) • Sold by VS Wholesale
                 </p>
               </div>
             </div>

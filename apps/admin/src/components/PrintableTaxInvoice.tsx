@@ -131,16 +131,16 @@ export const PrintableTaxInvoice: React.FC<PrintableTaxInvoiceProps> = ({ order,
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                   <div>
                     <h1 className="text-2xl font-black text-slate-950 tracking-tight">
-                      DAILYFRESH & WHOLESALE MART PVT. LTD.
+                      VARSHITHA SUDARSHAN AGENCIES (VS WHOLESALE)
                     </h1>
                     <p className="text-[11px] font-bold text-emerald-800 tracking-wide mt-0.5">
-                      Wholesale Supermarket • Agricultural Produce • Cold-Chain Logistics
+                      Wholesale Supermarket • Bulk Mandi Supplies • FMCG & Groceries
                     </p>
-                    <p className="text-[11px] text-slate-600 mt-1">
-                      Plot #124, APMC Wholesale Market Hub, Ring Road, Bengaluru, Karnataka - 560034
+                    <p className="text-[11px] text-slate-700 mt-1 font-medium">
+                      Opp Shadikhana, Main Road, Amalapuram, Andhra Pradesh
                     </p>
-                    <p className="text-[11px] text-slate-600">
-                      Email: support@dailyfreshmart.in | Helpdesk: +91 98765 43210
+                    <p className="text-[11px] text-slate-700 font-bold">
+                      WhatsApp / Call: 7799448865
                     </p>
                   </div>
                   <div className="sm:text-right border-l-2 sm:border-l-0 sm:border-r-0 border-slate-200 pl-3 sm:pl-0">
@@ -196,7 +196,7 @@ export const PrintableTaxInvoice: React.FC<PrintableTaxInvoiceProps> = ({ order,
                     {order.shippingAddress?.landmark ? `, Near ${order.shippingAddress.landmark}` : ''}
                   </p>
                   <p className="text-slate-700 font-bold">
-                    {order.shippingAddress?.city || 'Bengaluru'}, {order.shippingAddress?.state || 'Karnataka'} - {order.shippingAddress?.pincode || '560034'}
+                    {order.shippingAddress?.city || 'Amalapuram'}, {order.shippingAddress?.state || 'Andhra Pradesh'} - {order.shippingAddress?.pincode || '533201'}
                   </p>
                   <p className="text-slate-600 font-medium text-[11px]">
                     Fulfilment: {order.fulfilmentMethod === 'takeaway' ? 'Store Pickup Hub' : 'Doorstep Express Delivery'}
@@ -300,7 +300,7 @@ export const PrintableTaxInvoice: React.FC<PrintableTaxInvoiceProps> = ({ order,
                   <p>3. This is an electronically generated and authenticated invoice.</p>
                 </div>
                 <div className="sm:text-right space-y-1">
-                  <p className="font-bold text-slate-800 text-[11px]">For DAILYFRESH & WHOLESALE MART PVT. LTD.</p>
+                  <p className="font-bold text-slate-800 text-[11px]">For VARSHITHA SUDARSHAN AGENCIES (VS WHOLESALE)</p>
                   <div className="h-10 flex items-center justify-end">
                     <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                       Digitally Signed & Verified

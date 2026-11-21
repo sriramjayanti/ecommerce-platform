@@ -24,7 +24,7 @@ export const AdminLoginPage: React.FC = () => {
     e.preventDefault();
     const cleanId = email.trim();
     if (!cleanId) {
-      setError('Please enter your admin mobile number or email.');
+      setError('Please enter your admin mobile number.');
       return;
     }
     if (!password) {
@@ -39,7 +39,7 @@ export const AdminLoginPage: React.FC = () => {
     const isInvManager = cleanId.toLowerCase().includes('inv') && (password === 'id@varshitha123' || password === 'admin123');
 
     if (!isPrimaryAdmin && !isLegacyAdmin && !isOpsManager && !isInvManager && password !== 'id@varshitha123' && password !== 'admin123') {
-      setError('Invalid login credentials. Please verify your mobile number/email and password.');
+      setError('Invalid login credentials. Please verify your mobile number and password.');
       return;
     }
 
@@ -79,7 +79,7 @@ export const AdminLoginPage: React.FC = () => {
             <Store className="h-6 w-6 sm:h-7 sm:w-7" />
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            DailyFresh <span className="text-emerald-700 font-black">Admin Portal</span>
+            VS Wholesale <span className="text-emerald-700 font-black">Admin Portal</span>
           </h1>
           <p className="text-[11px] sm:text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
             Wholesale Pricing Engine • Central Inventory • Real-time Order Fulfillment
@@ -106,12 +106,12 @@ export const AdminLoginPage: React.FC = () => {
 
           <form onSubmit={handleFormSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Admin Mobile Number or Email</label>
+              <label className="block text-slate-700 font-bold mb-1">Admin Mobile Number</label>
               <div className="relative">
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 7799225566 or admin@dailyfreshmart.com"
+                  placeholder="e.g. 7799225566"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -165,28 +165,17 @@ export const AdminLoginPage: React.FC = () => {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
               Quick Role Presets:
             </span>
-            <div className="grid grid-cols-3 gap-1.5 text-[10px] font-bold">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                Authorized Login Preset:
+              </span>
               <button
                 type="button"
                 onClick={() => handlePresetFill('7799225566', 'id@varshitha123')}
-                className="rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 p-1.5 text-center transition font-black truncate"
+                className="rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 px-3 py-1 text-center transition font-black text-xs"
                 title="Super Admin: 7799225566"
               >
-                7799225566
-              </button>
-              <button
-                type="button"
-                onClick={() => handlePresetFill('ops@dailyfreshmart.com', 'id@varshitha123')}
-                className="rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-800 p-1.5 text-center transition truncate"
-              >
-                Ops Manager
-              </button>
-              <button
-                type="button"
-                onClick={() => handlePresetFill('inv@dailyfreshmart.com', 'id@varshitha123')}
-                className="rounded-lg border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-800 p-1.5 text-center transition truncate"
-              >
-                Inventory
+                7799225566 (Super Admin)
               </button>
             </div>
           </div>

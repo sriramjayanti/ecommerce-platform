@@ -68,7 +68,7 @@ export const CustomerLoginPage: React.FC = () => {
     setLoginError(null);
     const cleanPhone = loginPhone.trim().replace(/^(\+91|91|0)/, '');
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setLoginError('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).');
+      setLoginError('Please enter a valid 10-digit Indian mobile number (e.g. 7799448865).');
       return;
     }
     setLoading(true);
@@ -99,7 +99,7 @@ export const CustomerLoginPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-base sm:text-lg font-black tracking-tight text-white block leading-tight">
-                  DailyMart <span className="text-amber-400">Prime</span>
+                  VS <span className="text-amber-400">Wholesale</span>
                 </span>
                 <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 tracking-wider">
                   Wholesale & Supermart
@@ -167,7 +167,7 @@ export const CustomerLoginPage: React.FC = () => {
           <div className="space-y-6">
             <div>
               <span className="text-[11px] font-black uppercase tracking-widest text-emerald-700 block">
-                Welcome to DailyMart
+                Welcome to VS Wholesale
               </span>
               <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
                 Customer Sign In
@@ -202,21 +202,21 @@ export const CustomerLoginPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Phone Number or Email Address *
+                  Mobile Number *
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
-                    type="text"
+                    type="tel"
                     required
                     value={loginPhone}
                     onChange={(e) => setLoginPhone(e.target.value)}
-                    placeholder="e.g. +91 98765 43210 or email@domain.com"
+                    placeholder="e.g. 7799448865"
                     className="w-full rounded-2xl border border-slate-300 bg-white pl-10 pr-4 py-3 text-xs text-slate-900 outline-none focus:border-amber-500 font-bold"
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1">
-                  We'll send order updates and invoice copies to this contact.
+                  We'll send order updates and invoice copies to this mobile number.
                 </p>
               </div>
 
@@ -289,7 +289,7 @@ export const CustomerLoginPage: React.FC = () => {
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
             <span>Need help with an order?</span>
             <a
-              href="https://wa.me/919876543210"
+              href="https://wa.me/917799448865"
               target="_blank"
               rel="noreferrer"
               className="font-bold text-emerald-700 hover:underline"

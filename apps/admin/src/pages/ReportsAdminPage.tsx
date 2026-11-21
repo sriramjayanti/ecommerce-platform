@@ -316,7 +316,7 @@ export const ReportsAdminPage: React.FC = () => {
 
     const csvContent = [headers.join(','), ...rows].join('\n');
     const timestamp = new Date().toISOString().split('T')[0];
-    downloadCsv(csvContent, `dailyfresh_orders_report_${periodType}_${timestamp}.csv`);
+    downloadCsv(csvContent, `vswholesale_orders_report_${periodType}_${timestamp}.csv`);
   };
 
   // 2. Export Product Sales Performance CSV
@@ -346,7 +346,7 @@ export const ReportsAdminPage: React.FC = () => {
 
     const csvContent = [headers.join(','), ...rows].join('\n');
     const timestamp = new Date().toISOString().split('T')[0];
-    downloadCsv(csvContent, `dailyfresh_product_sales_performance_${timestamp}.csv`);
+    downloadCsv(csvContent, `vswholesale_product_sales_performance_${timestamp}.csv`);
   };
 
   // 3. Export Period Summary CSV (Daily / Weekly / Monthly aggregated)
@@ -374,7 +374,7 @@ export const ReportsAdminPage: React.FC = () => {
 
     const csvContent = [headers.join(','), ...rows].join('\n');
     const timestamp = new Date().toISOString().split('T')[0];
-    downloadCsv(csvContent, `dailyfresh_${periodType}_summary_report_${timestamp}.csv`);
+    downloadCsv(csvContent, `vswholesale_${periodType}_summary_report_${timestamp}.csv`);
   };
 
   // 4. Export Low Stock Report CSV (All products with stock <= 15)
@@ -413,7 +413,7 @@ export const ReportsAdminPage: React.FC = () => {
 
     const csvContent = [headers.join(','), ...rows].join('\n');
     const timestamp = new Date().toISOString().split('T')[0];
-    downloadCsv(csvContent, `dailyfresh_low_stock_warning_report_${timestamp}.csv`);
+    downloadCsv(csvContent, `vswholesale_low_stock_warning_report_${timestamp}.csv`);
   };
 
   return (

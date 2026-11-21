@@ -150,7 +150,8 @@ export const MegaHeader: React.FC = () => {
   const handlePincodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (pincode.length >= 6) {
-      if (pincode.startsWith('560')) setPincodeCity('Bengaluru');
+      if (pincode.startsWith('533')) setPincodeCity('Amalapuram');
+      else if (pincode.startsWith('560')) setPincodeCity('Bengaluru');
       else if (pincode.startsWith('400')) setPincodeCity('Mumbai');
       else if (pincode.startsWith('110')) setPincodeCity('Delhi');
       else setPincodeCity('India');
@@ -185,7 +186,7 @@ export const MegaHeader: React.FC = () => {
                 </div>
                 <div className="leading-tight">
                   <span className="text-base sm:text-xl font-black tracking-tight text-white flex items-center gap-1">
-                    DailyMart <span className="text-amber-400 font-extrabold">Prime</span>
+                    VS <span className="text-amber-400 font-extrabold">Wholesale</span>
                   </span>
                   <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 tracking-wider flex items-center gap-0.5">
                     <Zap className="h-2.5 w-2.5 fill-emerald-400" />
@@ -445,7 +446,7 @@ export const MegaHeader: React.FC = () => {
                       {user ? 'Welcome Back,' : 'Hello, Guest'}
                     </span>
                     <span className="font-extrabold text-sm block truncate max-w-[190px]">
-                      {user ? user.displayName || user.phone : 'DailyMart Customer'}
+                      {user ? user.displayName || user.phone : 'VS Wholesale Customer'}
                     </span>
                     {user ? (
                       <Link
@@ -676,7 +677,7 @@ export const MegaHeader: React.FC = () => {
                   </h4>
                   <div className="space-y-1">
                     <a
-                      href="https://wa.me/919876543210"
+                      href="https://wa.me/917799448865"
                       target="_blank"
                       rel="noreferrer"
                       className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-slate-100 text-emerald-700 font-bold transition"
@@ -685,7 +686,7 @@ export const MegaHeader: React.FC = () => {
                         <Phone className="h-4 w-4" />
                         <span>WhatsApp Customer Care</span>
                       </span>
-                      <span className="text-[10px] text-slate-400">+91 98765 43210</span>
+                      <span className="text-[10px] text-slate-400">+91 7799448865</span>
                     </a>
 
                     <a
@@ -779,13 +780,13 @@ export const MegaHeader: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setPincode('560001');
-                    setPincodeCity('Bengaluru');
+                    setPincode('533201');
+                    setPincodeCity('Amalapuram');
                     setLocationModalOpen(false);
                   }}
                   className="flex-1 rounded-xl bg-slate-100 p-2 text-[11px] font-bold text-slate-700 hover:bg-slate-200"
                 >
-                  Bengaluru
+                  Amalapuram
                 </button>
                 <button
                   type="button"

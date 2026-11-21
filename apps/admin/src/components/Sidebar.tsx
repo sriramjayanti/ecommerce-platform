@@ -52,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick, onClose, isMobile
               <Store className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-sm font-extrabold text-slate-900 tracking-tight">DailyFresh Mart</span>
+              <span className="text-sm font-extrabold text-slate-900 tracking-tight">VS Wholesale</span>
               <span className="block text-[10px] font-bold text-emerald-700 uppercase tracking-widest">
                 Admin Ops Center
               </span>

@@ -120,7 +120,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             {/* Brand & Assured Tag */}
             <div className="flex items-center justify-between gap-1 text-[11px] mb-1">
               <span className="font-bold text-slate-400 uppercase tracking-wider truncate">
-                {product.brand || 'DailyMart'}
+                {product.brand || 'VS Wholesale'}
               </span>
               <span className="flex items-center gap-0.5 font-extrabold text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
                 <ShieldCheck className="h-3 w-3" />

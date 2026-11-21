@@ -15,15 +15,15 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
 };
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
-  storeName: "DailyFresh & Wholesale Mart",
-  storePhone: "+91 98765 43210",
-  whatsappNumber: "+91 98765 43210",
-  supportEmail: "support@dailyfreshmart.com",
+  storeName: "VS Wholesale",
+  storePhone: "7799448865",
+  whatsappNumber: "7799448865",
+  supportEmail: "", // No email contact per user instructions; WhatsApp/Call only
   deliveryCharge: 40,
   freeDeliveryThreshold: 499,
   taxPercentage: 5,
   currency: "₹",
-  deliveryAreaNotice: "Delivering to your neighborhood within 2 hours • Bulk Wholesale Orders Welcome!",
+  deliveryAreaNotice: "Varshitha Sudarshan Agencies • Opp Shadikhana, Main Road, Amalapuram • Ph: 7799448865",
   featureFlags: DEFAULT_FEATURE_FLAGS,
 };
 
@@ -86,8 +86,8 @@ export function mapToSimpleTrackingStep(status: string): {
   };
 }
 
-export const STOREFRONT_URL_PROD = 'https://dailyfresh-wholesale-mart.web.app';
-export const ADMIN_URL_PROD = 'https://dailyfresh-wholesale-admin.web.app';
+export const STOREFRONT_URL_PROD = 'https://vs-wholesale.web.app';
+export const ADMIN_URL_PROD = 'https://vs-wholesale-admin.web.app';
 
 export function getStorefrontUrl(): string {
   if (typeof window !== 'undefined') {

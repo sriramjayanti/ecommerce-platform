@@ -115,7 +115,7 @@ export const Header: React.FC = () => {
               </div>
               <div>
                 <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1">
-                  DailyFresh <span className="text-emerald-700 font-black">& Wholesale</span>
+                  VS <span className="text-emerald-700 font-black">Wholesale</span>
                 </span>
                 <p className="text-[10px] font-bold text-amber-800 flex items-center gap-1">
                   <Zap className="h-3 w-3 fill-amber-500 text-amber-600" />
@@ -275,11 +275,11 @@ export const Header: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number or Email *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Mobile Number *</label>
                 <input
-                  type="text"
+                  type="tel"
                   required
-                  placeholder="9876543210 or email@domain.com"
+                  placeholder="7799448865"
                   value={loginPhone}
                   onChange={(e) => setLoginPhone(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-emerald-500"

@@ -598,7 +598,7 @@ export const ProductsAdminPage: React.FC = () => {
                   <UniversalImageUploader
                     value={imageUrl}
                     onChange={setImageUrl}
-                    folder="dailyfresh/products"
+                    folder="vswholesale/products"
                     label="Product Image (Upload from PC or Web URL)"
                     presets={PRESET_IMAGES.slice(0, 8)}
                     helperText="Upload any grocery image directly from your computer or pick from the preset library."

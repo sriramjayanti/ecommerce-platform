@@ -286,7 +286,7 @@ export const CategoriesAdminPage: React.FC = () => {
                 <UniversalImageUploader
                   value={imageUrl}
                   onChange={setImageUrl}
-                  folder="dailyfresh/categories"
+                  folder="vswholesale/categories"
                   label="Category Image (Upload from Device or URL)"
                   presets={CATEGORY_PRESETS.map((p) => ({ name: p.name, url: p.image }))}
                   helperText="Upload an image from your PC or pick from presets. Used in customer header and browse pills."

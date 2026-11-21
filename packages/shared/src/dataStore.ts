@@ -240,6 +240,12 @@ class UnifiedDataStore {
       safeSetItem('dailyfresh_clean_slate_v12', 'true');
     }
 
+    if (!safeGetItem('vswholesale_clean_slate_v13')) {
+      safeSetItem('dailyfresh_settings', JSON.stringify(DEFAULT_STORE_SETTINGS));
+      safeSetItem('dailyfresh_banners', JSON.stringify(INITIAL_BANNERS));
+      safeSetItem('vswholesale_clean_slate_v13', 'true');
+    }
+
     if (!safeGetItem('dailyfresh_products')) {
       safeSetItem('dailyfresh_products', JSON.stringify([]));
     }

@@ -6,10 +6,10 @@
     "dailyfresh-wholesale-mart": {
       "hosting": {
         "web": [
-          "dailyfresh-wholesale-mart"
+          "vs-wholesale"
         ],
         "admin": [
-          "dailyfresh-wholesale-admin"
+          "vs-wholesale-admin"
         ]
       }
     }

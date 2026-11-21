@@ -263,7 +263,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({ defaultTab }) => {
                   {addresses.length}
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  {addresses[0]?.city || 'Bengaluru'}
+                  {addresses[0]?.city || 'Amalapuram'}
                 </span>
               </div>
 
@@ -735,7 +735,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({ defaultTab }) => {
                       <div className="space-y-1.5 flex-1 flex flex-col justify-between">
                         <div>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
-                            {p.brand || 'DailyMart'}
+                            {p.brand || 'VS Wholesale'}
                           </span>
                           <Link
                             to={`/product/${p.slug || p.id}`}

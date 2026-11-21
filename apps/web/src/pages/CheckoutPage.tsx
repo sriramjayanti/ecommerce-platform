@@ -118,7 +118,7 @@ export const CheckoutPage: React.FC = () => {
 
         const cleanPhone = phone.trim().replace(/^(\+91|91|0)/, '');
         if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-          setErrorMessage('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).');
+          setErrorMessage('Please enter a valid 10-digit Indian mobile number (e.g. 7799448865).');
           setIsSubmitting(false);
           return;
         }
@@ -171,9 +171,12 @@ export const CheckoutPage: React.FC = () => {
         })),
         shippingAddress: fulfilmentMethod === 'takeaway' ? {
           ...shippingAddress,
-          line1: 'Store Pickup / Takeaway Hub (Gate #4)',
-          line2: 'DailyFresh Mart Central Wholesale Warehouse',
-          city: 'Wholesale Hub',
+          line1: 'Varshitha Sudarshan Agencies',
+          line2: 'Opp Shadikhana, Main Road',
+          city: 'Amalapuram',
+          state: 'Andhra Pradesh',
+          pincode: '533201',
+          phone: '7799448865',
         } : shippingAddress,
         paymentMethod: paymentType as any,
         paymentDetails: {
@@ -412,7 +415,7 @@ export const CheckoutPage: React.FC = () => {
                           required
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
-                          placeholder="e.g. Bengaluru"
+                          placeholder="e.g. Amalapuram"
                           className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 font-medium"
                         />
                       </div>
@@ -423,7 +426,7 @@ export const CheckoutPage: React.FC = () => {
                           required
                           value={state}
                           onChange={(e) => setState(e.target.value)}
-                          placeholder="e.g. Karnataka"
+                          placeholder="e.g. Andhra Pradesh"
                           className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 font-medium"
                         />
                       </div>
@@ -509,8 +512,8 @@ export const CheckoutPage: React.FC = () => {
 
                 {fulfilmentMethod === 'takeaway' ? (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-xs space-y-1">
-                    <span className="font-bold text-emerald-900 block">Pickup Hub: DailyFresh Mart Wholesale Center</span>
-                    <p className="text-slate-600">APMC Wholesale Market Yard, Sector 19, Warehouse Gate #4</p>
+                    <span className="font-bold text-emerald-900 block">Pickup Hub: Varshitha Sudarshan Agencies (VS Wholesale)</span>
+                    <p className="text-slate-600">Opp Shadikhana, Main Road, Amalapuram • Ph: 7799448865</p>
                     <p className="text-[11px] text-emerald-700 font-bold">✓ Ready for pickup in 45 minutes • ₹0 Delivery Fee</p>
                   </div>
                 ) : (

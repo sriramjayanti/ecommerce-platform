@@ -59,7 +59,7 @@ export const Footer: React.FC = () => {
               <li><Link to="/account" className="hover:text-white transition">Returns Centre</Link></li>
               <li><Link to="/help/shipping" className="hover:text-white transition">100% Purchase Protection</Link></li>
               <li><Link to="/help/shipping" className="hover:text-white transition">Shipping Rates & Policies</Link></li>
-              <li><a href={`https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-400 font-semibold hover:underline">WhatsApp Live Chat</a></li>
+              <li><a href="https://wa.me/917799448865" target="_blank" rel="noreferrer" className="text-emerald-400 font-semibold hover:underline">WhatsApp Live Chat (7799448865)</a></li>
             </ul>
           </div>
 
@@ -75,16 +75,34 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 4: Mail Us */}
+          {/* Col 4: Contact Us (WhatsApp / Call) */}
           <div className="border-t md:border-t-0 md:border-l border-slate-800 pt-6 md:pt-0 md:pl-6">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Mail Us:</h4>
-            <div className="text-xs text-slate-400 leading-relaxed space-y-1">
-              <p className="font-semibold text-slate-200">{settings.storeName} Internet Private Limited,</p>
-              <p>Buildings Alyssa, Begonia & Clove Embassy Tech Village,</p>
-              <p>Outer Ring Road, Devarabeesanahalli Village,</p>
-              <p>Bengaluru, 560103, Karnataka, India</p>
-              <p className="pt-2 text-slate-300">CIN: U51109KA2012PTC066107</p>
-              <p>Phone: <span className="text-white font-medium">{settings.storePhone}</span></p>
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Contact Us:</h4>
+            <div className="text-xs text-slate-400 leading-relaxed space-y-1.5">
+              <p className="font-extrabold text-white text-sm">Varshitha Sudarshan Agencies</p>
+              <p className="font-medium text-slate-300">Opp Shadikhana, Main Road,</p>
+              <p className="font-medium text-slate-300">Amalapuram, Andhra Pradesh</p>
+              <div className="pt-2 space-y-2">
+                <div>
+                  <a
+                    href="tel:7799448865"
+                    className="inline-flex items-center gap-1.5 text-emerald-400 font-bold hover:text-emerald-300 transition"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    <span>Call: 7799448865</span>
+                  </a>
+                </div>
+                <div>
+                  <a
+                    href="https://wa.me/917799448865"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-emerald-400 font-bold hover:text-emerald-300 transition"
+                  >
+                    <span>💬 WhatsApp: 7799448865</span>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -92,12 +110,14 @@ export const Footer: React.FC = () => {
           <div className="border-t md:border-t-0 md:border-l border-slate-800 pt-6 md:pt-0 md:pl-6">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Registered Office:</h4>
             <div className="text-xs text-slate-400 leading-relaxed space-y-1">
-              <p className="font-semibold text-slate-200">{settings.storeName} Commerce Hub,</p>
-              <p>42 Industrial Area, Phase II,</p>
-              <p>Bengaluru, 560068, Karnataka, India</p>
+              <p className="font-extrabold text-white text-sm">VS Wholesale</p>
+              <p className="text-slate-300 font-medium">Varshitha Sudarshan Agencies,</p>
+              <p className="text-slate-300">Opp Shadikhana, Main Road,</p>
+              <p className="text-slate-300">Amalapuram, Andhra Pradesh</p>
+              <p className="font-bold text-slate-200 pt-1">Contact: 7799448865</p>
               <div className="pt-3">
                 <a
-                  href={`https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}?text=Hi,%20I%20want%20to%20place%20a%20wholesale%20bulk%20order.`}
+                  href="https://wa.me/917799448865?text=Hi,%20I%20want%20to%20place%20a%20wholesale%20order%20with%20VS%20Wholesale."
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-2 text-xs font-bold text-white shadow-md hover:from-emerald-500 hover:to-teal-500 transition"
@@ -130,7 +150,7 @@ export const Footer: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
-            <span>© {new Date().getFullYear()} {settings.storeName}. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} VS Wholesale (Varshitha Sudarshan Agencies). All rights reserved.</span>
             <span className="hidden sm:inline">•</span>
             <span className="flex items-center gap-1 text-slate-500">
               <Lock className="h-3.5 w-3.5 text-emerald-500" />

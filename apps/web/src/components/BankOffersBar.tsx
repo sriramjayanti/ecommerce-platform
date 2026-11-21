@@ -25,7 +25,7 @@ export const BankOffersBar: React.FC = () => {
         {/* Prime Fast Delivery */}
         <div className="hidden md:flex items-center gap-2 text-emerald-300 font-bold">
           <Truck className="h-3.5 w-3.5 text-emerald-400" />
-          <span>⚡ FREE Same-Day & Next-Day Delivery with DailyMart Prime</span>
+          <span>⚡ FREE Same-Day & Next-Day Delivery with VS Wholesale</span>
         </div>
 
         {/* 7-Day Replacement Guarantee */}

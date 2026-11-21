@@ -45,7 +45,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const isEmail = email.includes('@');
     const profile: UserProfile = {
       id: `admin-${Date.now()}`,
-      email: isEmail ? email : `${email}@dailyfreshmart.com`,
+      email: isEmail ? email : `${email}@vswholesale.in`,
       phone: !isEmail ? email : undefined,
       displayName: displayName || (isEmail ? email.split('@')[0].toUpperCase() + ' (Admin)' : `Super Admin (${email})`),
       role,
