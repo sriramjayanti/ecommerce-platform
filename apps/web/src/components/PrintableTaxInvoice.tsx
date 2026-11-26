@@ -204,7 +204,7 @@ export const PrintableTaxInvoice: React.FC<PrintableTaxInvoiceProps> = ({ order,
                     {order.shippingAddress?.landmark ? `, Near ${order.shippingAddress.landmark}` : ''}
                   </p>
                   <p className="text-slate-700 font-bold">
-                    {order.shippingAddress?.city || 'Amalapuram'}, {order.shippingAddress?.state || 'Andhra Pradesh'} - {order.shippingAddress?.pincode || '533201'}
+                    {order.shippingAddress?.city || 'Bengaluru'}, {order.shippingAddress?.state || 'Karnataka'} - {order.shippingAddress?.pincode || '560034'}
                   </p>
                   <p className="text-slate-600 font-medium text-[11px]">
                     Fulfilment: {order.fulfilmentMethod === 'takeaway' ? 'Store Pickup Hub' : 'Doorstep Express Delivery'}

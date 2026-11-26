@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Product, ProductVariant, Review, INITIAL_PRODUCTS, dataStore } from '@ecommerce/shared';
 import { useCart } from '../context/CartContext';
 import { WholesaleTierTable } from '../components/WholesaleTierTable';
+import { FlipkartProductRow } from '../components/FlipkartProductRow';
+import { ProductCard } from '../components/ProductCard';
 import {
   Star,
   ShoppingBag,
@@ -22,7 +24,291 @@ import {
   Plus,
   ArrowLeft,
   Tag,
+  Filter,
 } from 'lucide-react';
+
+const SAMPLE_RECOMMENDED_PRODUCTS: Product[] = [
+  {
+    id: 'rec-atta-5kg',
+    title: 'Shudh Golden Sharbati Whole Wheat Chakki Atta (5kg Pack)',
+    slug: 'shudh-golden-sharbati-atta-5kg',
+    description: '100% pure MP Sharbati wheat stone-ground flour. High dietary fiber and extra soft rotis.',
+    categoryId: 'cat-staples',
+    category: 'Grains & Atta',
+    subcategoryId: 'sub-atta',
+    brand: 'VS Wholesale',
+    badge: 'Trending',
+    images: ['https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80'],
+    variants: [
+      {
+        id: 'var-rec-atta-5kg',
+        name: '5 kg Pack',
+        sku: 'VS-ATTA-5KG',
+        weightOrSize: '5 kg',
+        lowStockThreshold: 15,
+        mrp: 299,
+        basePrice: 245,
+        stock: 150,
+        pricingTiers: [
+          { id: 'tier-1', minQty: 1, maxQty: 4, unitPrice: 245, label: 'Retail (1-4)' },
+          { id: 'tier-2', minQty: 5, maxQty: null, unitPrice: 220, label: 'Wholesale (5+)' },
+        ],
+        isDefault: true,
+      },
+    ],
+    isWholesaleEnabled: true,
+    rating: 4.8,
+    reviewCount: 340,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-basmati-rice-5kg',
+    title: 'Daawat Rozana Super Basmati Rice (5kg Bag - Aged 2 Years)',
+    slug: 'daawat-rozana-super-basmati-rice-5kg',
+    description: 'Long grain aromatic basmati rice aged for fluffy, non-sticky cooking.',
+    categoryId: 'cat-staples',
+    category: 'Rice & Grains',
+    subcategoryId: 'sub-rice',
+    brand: 'Daawat',
+    badge: 'Bestseller',
+    images: ['https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80'],
+    variants: [
+      {
+        id: 'var-rec-rice-5kg',
+        name: '5 kg Bag',
+        sku: 'VS-RICE-5KG',
+        weightOrSize: '5 kg',
+        lowStockThreshold: 15,
+        mrp: 480,
+        basePrice: 385,
+        stock: 200,
+        pricingTiers: [
+          { id: 'tier-1', minQty: 1, maxQty: 3, unitPrice: 385, label: 'Retail (1-3)' },
+          { id: 'tier-2', minQty: 4, maxQty: null, unitPrice: 350, label: 'Wholesale (4+)' },
+        ],
+        isDefault: true,
+      },
+    ],
+    isWholesaleEnabled: true,
+    rating: 4.9,
+    reviewCount: 520,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-sunflower-oil-1l',
+    title: 'Fortune Sunlite Refined Sunflower Oil Pouch (1 Litre)',
+    slug: 'fortune-sunlite-sunflower-oil-1l',
+    description: 'Light, healthy refined sunflower oil enriched with Vitamin A & D.',
+    categoryId: 'cat-oils',
+    category: 'Oils & Ghee',
+    subcategoryId: 'sub-oil',
+    brand: 'Fortune',
+    badge: 'Deal of the Day',
+    images: ['https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&auto=format&fit=crop&q=80'],
+    variants: [
+      {
+        id: 'var-rec-oil-1l',
+        name: '1 Litre Pouch',
+        sku: 'VS-OIL-1L',
+        weightOrSize: '1 Litre',
+        lowStockThreshold: 15,
+        mrp: 165,
+        basePrice: 132,
+        stock: 350,
+        pricingTiers: [
+          { id: 'tier-1', minQty: 1, maxQty: 5, unitPrice: 132, label: 'Retail (1-5)' },
+          { id: 'tier-2', minQty: 6, maxQty: null, unitPrice: 122, label: 'Carton (6+)' },
+        ],
+        isDefault: true,
+      },
+    ],
+    isWholesaleEnabled: true,
+    rating: 4.7,
+    reviewCount: 410,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-toor-dal-1kg',
+    title: 'Tata Sampann Unpolished High-Protein Toor Dal (1kg Pouch)',
+    slug: 'tata-sampann-unpolished-toor-dal-1kg',
+    description: 'Unpolished pigeon peas rich in natural dietary protein without water or leather polishing.',
+    categoryId: 'cat-staples',
+    category: 'Dals & Pulses',
+    subcategoryId: 'sub-dal',
+    brand: 'Tata Sampann',
+    badge: 'Flipkart Assured',
+    images: ['https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&auto=format&fit=crop&q=80'],
+    variants: [
+      {
+        id: 'var-rec-dal-1kg',
+        name: '1 kg Pouch',
+        sku: 'VS-DAL-1KG',
+        weightOrSize: '1 kg',
+        lowStockThreshold: 15,
+        mrp: 195,
+        basePrice: 158,
+        stock: 220,
+        pricingTiers: [
+          { id: 'tier-1', minQty: 1, maxQty: 4, unitPrice: 158, label: 'Retail (1-4)' },
+          { id: 'tier-2', minQty: 5, maxQty: null, unitPrice: 142, label: 'Wholesale (5+)' },
+        ],
+        isDefault: true,
+      },
+    ],
+    isWholesaleEnabled: true,
+    rating: 4.8,
+    reviewCount: 290,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-pure-ghee-1l',
+    title: 'Amul Pure Desi Cow Ghee (1 Litre Aroma Tin)',
+    slug: 'amul-pure-cow-ghee-1l',
+    description: 'Granular texture, rich aroma, and natural golden color made from fresh cow milk.',
+    categoryId: 'cat-oils',
+    category: 'Oils & Ghee',
+    subcategoryId: 'sub-ghee',
+    brand: 'Amul',
+    badge: 'Bestseller',
+    images: ['https://images.unsplash.com/photo-1528750997573-59b89d56f4f7?w=600&auto=format&fit=crop&q=80'],
+    variants: [
+      {
+        id: 'var-rec-ghee-1l',
+        name: '1 Litre Tin',
+        sku: 'VS-GHEE-1L',
+        weightOrSize: '1 Litre',
+        lowStockThreshold: 15,
+        mrp: 695,
+        basePrice: 585,
+        stock: 110,
+        pricingTiers: [
+          { id: 'tier-1', minQty: 1, maxQty: 2, unitPrice: 585, label: 'Retail (1-2)' },
+          { id: 'tier-2', minQty: 3, maxQty: null, unitPrice: 545, label: 'Wholesale (3+)' },
+        ],
+        isDefault: true,
+      },
+    ],
+    isWholesaleEnabled: true,
+    rating: 4.9,
+    reviewCount: 680,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-bhujia-sev-400g',
+    title: "Haldiram's Nagpur Spicy Bhujia Sev Snack Pouch (400g)",
+    slug: 'haldirams-nagpur-spicy-bhujia-sev-400g',
+    description: 'Crispy gram and moth pulse savory noodles spiced with signature cloves and red chillies.',
+    categoryId: 'cat-snacks',
+    category: 'Snacks & Munchies',
+    subcategoryId: 'sub-namkeen',
+    brand: "Haldiram's",
+    badge: 'Trending',
+    images: ['https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=600&auto=format&fit=crop&q=80'],
+    variants: [
+      {
+        id: 'var-rec-bhujia-400g',
+        name: '400g Pouch',
+        sku: 'VS-BHUJIA-400G',
+        weightOrSize: '400g',
+        lowStockThreshold: 15,
+        mrp: 125,
+        basePrice: 98,
+        stock: 280,
+        pricingTiers: [
+          { id: 'tier-1', minQty: 1, maxQty: 5, unitPrice: 98, label: 'Retail (1-5)' },
+          { id: 'tier-2', minQty: 6, maxQty: null, unitPrice: 86, label: 'Carton (6+)' },
+        ],
+        isDefault: true,
+      },
+    ],
+    isWholesaleEnabled: true,
+    rating: 4.7,
+    reviewCount: 460,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-tata-tea-gold-500g',
+    title: 'Tata Tea Gold Premium Assam Long Leaf Black Tea (500g Pack)',
+    slug: 'tata-tea-gold-premium-assam-tea-500g',
+    description: 'Exquisite blend of CTC tea granules and gently rolled aromatic Assam long leaves.',
+    categoryId: 'cat-beverages',
+    category: 'Beverages & Tea',
+    subcategoryId: 'sub-tea',
+    brand: 'Tata Tea',
+    badge: 'Top Rated',
+    images: ['https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&auto=format&fit=crop&q=80'],
+    variants: [
+      {
+        id: 'var-rec-tea-500g',
+        name: '500g Pack',
+        sku: 'VS-TEA-500G',
+        weightOrSize: '500g',
+        lowStockThreshold: 15,
+        mrp: 340,
+        basePrice: 285,
+        stock: 190,
+        pricingTiers: [
+          { id: 'tier-1', minQty: 1, maxQty: 3, unitPrice: 285, label: 'Retail (1-3)' },
+          { id: 'tier-2', minQty: 4, maxQty: null, unitPrice: 260, label: 'Wholesale (4+)' },
+        ],
+        isDefault: true,
+      },
+    ],
+    isWholesaleEnabled: true,
+    rating: 4.8,
+    reviewCount: 310,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'rec-everest-masala-combo',
+    title: 'Everest Pav Bhaji & Royal Garam Masala Twin Pack (100g + 100g)',
+    slug: 'everest-pav-bhaji-garam-masala-combo-200g',
+    description: 'Authentic Indian spice blends ground from whole spices for rich flavor and vibrant aroma.',
+    categoryId: 'cat-spices',
+    category: 'Spices & Masalas',
+    subcategoryId: 'sub-masala',
+    brand: 'Everest',
+    badge: 'Trending',
+    images: ['https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=600&auto=format&fit=crop&q=80'],
+    variants: [
+      {
+        id: 'var-rec-masala-200g',
+        name: 'Twin Pack 200g',
+        sku: 'VS-MASALA-200G',
+        weightOrSize: '200g',
+        lowStockThreshold: 15,
+        mrp: 170,
+        basePrice: 135,
+        stock: 240,
+        pricingTiers: [
+          { id: 'tier-1', minQty: 1, maxQty: 4, unitPrice: 135, label: 'Retail (1-4)' },
+          { id: 'tier-2', minQty: 5, maxQty: null, unitPrice: 118, label: 'Wholesale (5+)' },
+        ],
+        isDefault: true,
+      },
+    ],
+    isWholesaleEnabled: true,
+    rating: 4.9,
+    reviewCount: 540,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
 
 export const ProductDetailPage: React.FC = () => {
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
@@ -30,6 +316,8 @@ export const ProductDetailPage: React.FC = () => {
   const { addItem, toggleWishlist, isInWishlist } = useCart();
 
   const fallbackProduct = INITIAL_PRODUCTS.find(
+    (p) => p.id === idOrSlug || p.slug === idOrSlug
+  ) || SAMPLE_RECOMMENDED_PRODUCTS.find(
     (p) => p.id === idOrSlug || p.slug === idOrSlug
   ) || null;
 
@@ -43,20 +331,23 @@ export const ProductDetailPage: React.FC = () => {
   const [pincode, setPincode] = useState<string>('');
   const [pincodeMessage, setPincodeMessage] = useState<string>('');
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [frequentlyBought, setFrequentlyBought] = useState<Product[]>(
-    INITIAL_PRODUCTS.filter((p) => p.id !== fallbackProduct?.id).slice(0, 2)
-  );
+  const [allCatalogProducts, setAllCatalogProducts] = useState<Product[]>([]);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
+  const [frequentlyBought, setFrequentlyBought] = useState<Product[]>([]);
   const [bundleChecked, setBundleChecked] = useState<boolean>(true);
   const [addedToast, setAddedToast] = useState<boolean>(false);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (!idOrSlug) return;
-    const foundLocal = INITIAL_PRODUCTS.find((p) => p.id === idOrSlug || p.slug === idOrSlug);
+
+    const foundLocal = INITIAL_PRODUCTS.find((p) => p.id === idOrSlug || p.slug === idOrSlug) ||
+      SAMPLE_RECOMMENDED_PRODUCTS.find((p) => p.id === idOrSlug || p.slug === idOrSlug);
+
     if (foundLocal) {
       setProduct(foundLocal);
       setSelectedVariant(foundLocal.variants.find((v) => v.isDefault) || foundLocal.variants[0]);
       setSelectedImage(foundLocal.images[0] || '');
-      setFrequentlyBought(INITIAL_PRODUCTS.filter((p) => p.id !== foundLocal.id).slice(0, 2));
       setLoading(false);
     }
 
@@ -75,6 +366,12 @@ export const ProductDetailPage: React.FC = () => {
         if (!selectedImage) {
           setSelectedImage(found.images[0] || '');
         }
+      }
+
+      // Load all catalog products for recommendations
+      const allProds = await dataStore.getProducts();
+      if (Array.isArray(allProds) && allProds.length > 0) {
+        setAllCatalogProducts(allProds);
       }
       setLoading(false);
     };
@@ -149,6 +446,50 @@ export const ProductDetailPage: React.FC = () => {
   const bundleItem = frequentlyBought[0];
   const bundleTotal = price + (bundleItem?.variants[0]?.basePrice || 0);
   const bundleDiscounted = Math.round(bundleTotal * 0.9);
+
+  // Merge all catalog products with fallback recommended products (no duplicate IDs/titles)
+  const combinedProducts = [
+    ...allCatalogProducts,
+    ...SAMPLE_RECOMMENDED_PRODUCTS.filter(
+      (sp) => !allCatalogProducts.some((ap) => ap.id === sp.id || ap.title === sp.title)
+    ),
+  ];
+
+  // Candidates excluding the active product
+  const nonCurrentProducts = combinedProducts.filter(
+    (p) => p.id !== product?.id && p.slug !== product?.slug
+  );
+
+  // 1. Similar Products: Prefer same category or related items
+  const sameCategoryProducts = nonCurrentProducts.filter(
+    (p) => ((p as any).category && (p as any).category === (product as any)?.category) || p.categoryId === product?.categoryId
+  );
+  const similarProducts = sameCategoryProducts.length >= 4
+    ? sameCategoryProducts
+    : [...sameCategoryProducts, ...nonCurrentProducts.filter((p) => !sameCategoryProducts.includes(p))].slice(0, 8);
+
+  // 2. Bought Together / Customers Also Viewed
+  const boughtTogetherProducts = nonCurrentProducts
+    .filter((p) => !similarProducts.some((sp) => sp.id === p.id))
+    .slice(0, 8);
+
+  // 3. Unique categories for vertical grid filter tabs
+  const availableCategories = Array.from(
+    new Set(
+      combinedProducts
+        .map((p) => (p as any).category || (p.categoryId ? p.categoryId.replace('cat-', '') : ''))
+        .filter(Boolean)
+    )
+  );
+
+  // 4. Vertical Grid Products (Explore More)
+  const verticalExploreProducts = nonCurrentProducts.filter((p) => {
+    if (activeCategoryFilter !== 'all') {
+      const catName = ((p as any).category || p.categoryId || '').toLowerCase();
+      return catName.includes(activeCategoryFilter.toLowerCase());
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 py-6 font-sans">
@@ -529,6 +870,81 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* FLIPKART STYLE HORIZONTAL CAROUSEL 1: SIMILAR PRODUCTS */}
+        <FlipkartProductRow
+          title="Similar Products"
+          subtitle="Explore top rated alternatives with direct wholesale volume slabs"
+          badge="Trending"
+          products={similarProducts}
+          onProductClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        />
+
+        {/* FLIPKART STYLE HORIZONTAL CAROUSEL 2: BOUGHT TOGETHER / CUSTOMERS ALSO VIEWED */}
+        <FlipkartProductRow
+          title="Bought Together • Customers Also Viewed"
+          subtitle="Frequently paired groceries, cooking essentials & wholesale packs"
+          badge="Hot Deals"
+          products={boughtTogetherProducts}
+          onProductClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        />
+
+        {/* FLIPKART & AMAZON STYLE VERTICAL PRODUCTS GRID */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-7 shadow-xs space-y-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                  Explore More Products & Wholesale Deals
+                </h3>
+                <span className="rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 uppercase tracking-wider">
+                  Mandi Wholesale Rates
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Browse our complete grocery catalog with quantity discount tiers & doorstep delivery
+              </p>
+            </div>
+
+            {/* Category Filter Tabs */}
+            {availableCategories.length > 0 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveCategoryFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    activeCategoryFilter === 'all'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  All Deals
+                </button>
+                {availableCategories.slice(0, 6).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCategoryFilter(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap capitalize ${
+                      activeCategoryFilter === cat
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Vertical Multi-Column Product Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4.5">
+            {verticalExploreProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
 
         {/* CUSTOMER REVIEWS & RATINGS SECTION */}
         <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-6">

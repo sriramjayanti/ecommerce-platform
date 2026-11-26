@@ -94,7 +94,7 @@ export const PrintableTaxInvoice: React.FC<PrintableTaxInvoiceProps> = ({ order,
 
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto no-print">
         <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-300 overflow-hidden my-auto max-h-[92vh] flex flex-col">
-          
+
           <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white border-b border-slate-800 flex-shrink-0">
             <div className="flex items-center gap-2">
               <span className="flex h-3 w-3 rounded-full bg-emerald-400" />
@@ -196,7 +196,7 @@ export const PrintableTaxInvoice: React.FC<PrintableTaxInvoiceProps> = ({ order,
                     {order.shippingAddress?.landmark ? `, Near ${order.shippingAddress.landmark}` : ''}
                   </p>
                   <p className="text-slate-700 font-bold">
-                    {order.shippingAddress?.city || 'Amalapuram'}, {order.shippingAddress?.state || 'Andhra Pradesh'} - {order.shippingAddress?.pincode || '533201'}
+                    {order.shippingAddress?.city || 'Bengaluru'}, {order.shippingAddress?.state || 'Karnataka'} - {order.shippingAddress?.pincode || '560034'}
                   </p>
                   <p className="text-slate-600 font-medium text-[11px]">
                     Fulfilment: {order.fulfilmentMethod === 'takeaway' ? 'Store Pickup Hub' : 'Doorstep Express Delivery'}

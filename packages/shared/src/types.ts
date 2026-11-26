@@ -41,12 +41,12 @@ export interface ProductVariant {
   name: string; // e.g. "500g", "1kg", "Pack of 6", "128GB Blue"
   sku: string;
   barcode?: string;
-  weightOrSize: string;
+  weightOrSize?: string;
   mrp: number;
   basePrice: number; // Single unit regular price (Selling Price)
   costPrice?: number; // Admin Only: Net Amount / Purchase Cost Price (used for Profit & Loss calculation)
   stock: number;
-  lowStockThreshold: number;
+  lowStockThreshold?: number;
   pricingTiers: PriceTier[];
   isDefault?: boolean;
   images?: string[];
@@ -59,6 +59,7 @@ export interface Product {
   slug: string;
   description: string;
   categoryId: string;
+  category?: string;
   subcategoryId?: string;
   brand?: string;
   images: string[];

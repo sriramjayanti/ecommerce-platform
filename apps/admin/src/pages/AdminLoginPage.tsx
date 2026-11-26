@@ -15,8 +15,8 @@ import {
 
 export const AdminLoginPage: React.FC = () => {
   const { login } = useAdminAuth();
-  const [email, setEmail] = useState('7799225566');
-  const [password, setPassword] = useState('id@varshitha123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,12 +58,6 @@ export const AdminLoginPage: React.FC = () => {
     }
 
     await login(cleanId, role, name);
-  };
-
-  const handlePresetFill = (presetId: string, presetPass: string = 'id@varshitha123') => {
-    setEmail(presetId);
-    setPassword(presetPass);
-    setError(null);
   };
 
   return (
@@ -159,26 +153,6 @@ export const AdminLoginPage: React.FC = () => {
               Sign In to Operations Console
             </button>
           </form>
-
-          {/* Quick Preset Buttons for testing */}
-          <div className="pt-3 border-t border-slate-100">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-              Quick Role Presets:
-            </span>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                Authorized Login Preset:
-              </span>
-              <button
-                type="button"
-                onClick={() => handlePresetFill('7799225566', 'id@varshitha123')}
-                className="rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 px-3 py-1 text-center transition font-black text-xs"
-                title="Super Admin: 7799225566"
-              >
-                7799225566 (Super Admin)
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Utilities: Open Store */}
