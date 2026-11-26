@@ -105,7 +105,8 @@ export const AdminLoginPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 7799225566"
+                  autoComplete="off"
+                  placeholder="Enter your mobile number"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -122,7 +123,8 @@ export const AdminLoginPage: React.FC = () => {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);

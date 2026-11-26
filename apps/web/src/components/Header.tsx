@@ -267,7 +267,7 @@ export const Header: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">Your Full Name</label>
                 <input
                   type="text"
-                  placeholder="Rahul Sharma"
+                  placeholder="Enter your name"
                   value={loginName}
                   onChange={(e) => setLoginName(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-emerald-500"
@@ -279,7 +279,8 @@ export const Header: React.FC = () => {
                 <input
                   type="tel"
                   required
-                  placeholder="7799448865"
+                  autoComplete="off"
+                  placeholder="Enter your mobile number"
                   value={loginPhone}
                   onChange={(e) => setLoginPhone(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-emerald-500"

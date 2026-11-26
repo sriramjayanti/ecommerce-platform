@@ -118,7 +118,7 @@ export const CheckoutPage: React.FC = () => {
 
         const cleanPhone = phone.trim().replace(/^(\+91|91|0)/, '');
         if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-          setErrorMessage('Please enter a valid 10-digit Indian mobile number (e.g. 7799448865).');
+          setErrorMessage('Please enter a valid 10-digit Indian mobile number.');
           setIsSubmitting(false);
           return;
         }

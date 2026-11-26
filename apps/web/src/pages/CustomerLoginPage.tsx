@@ -68,7 +68,7 @@ export const CustomerLoginPage: React.FC = () => {
     setLoginError(null);
     const cleanPhone = loginPhone.trim().replace(/^(\+91|91|0)/, '');
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setLoginError('Please enter a valid 10-digit Indian mobile number (e.g. 7799448865).');
+      setLoginError('Please enter a valid 10-digit Indian mobile number.');
       return;
     }
     setLoading(true);
@@ -194,7 +194,7 @@ export const CustomerLoginPage: React.FC = () => {
                     type="text"
                     value={loginName}
                     onChange={(e) => setLoginName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
+                    placeholder="Enter your full name"
                     className="w-full rounded-2xl border border-slate-300 bg-white pl-10 pr-4 py-3 text-xs text-slate-900 outline-none focus:border-amber-500 font-bold"
                   />
                 </div>
@@ -209,9 +209,10 @@ export const CustomerLoginPage: React.FC = () => {
                   <input
                     type="tel"
                     required
+                    autoComplete="off"
                     value={loginPhone}
                     onChange={(e) => setLoginPhone(e.target.value)}
-                    placeholder="e.g. 7799448865"
+                    placeholder="Enter your mobile number"
                     className="w-full rounded-2xl border border-slate-300 bg-white pl-10 pr-4 py-3 text-xs text-slate-900 outline-none focus:border-amber-500 font-bold"
                   />
                 </div>
@@ -228,9 +229,10 @@ export const CustomerLoginPage: React.FC = () => {
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="Enter account password or PIN"
+                    placeholder="Enter your password"
                     className="w-full rounded-2xl border border-slate-300 bg-white pl-10 pr-11 py-3 text-xs text-slate-900 outline-none focus:border-amber-500 font-bold"
                   />
                   <button
